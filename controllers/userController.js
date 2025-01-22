@@ -1,5 +1,5 @@
 // Importar dependencias
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 const mongoosePaginate = require('mongoose-paginate-v2');
 const Follow = require("../models/follow")
 const Publication = require("../models/publication")

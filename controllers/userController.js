@@ -1,12 +1,11 @@
 // Importar dependencias
 const bcrypt = require("bcryptjs");
-const mongoosePaginate = require('mongoose-paginate-v2');
 const Follow = require("../models/follow")
 const Publication = require("../models/publication")
 const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const cloudinary = require('../config/cloudinary-config');
+
 
 //Importar modulos
 const user = require('../models/user');

@@ -3,6 +3,8 @@ const router = express.Router();
 const multer = require('multer');
 const userController = require('../controllers/userController');
 const check = require('../middlewares/auth');
+const uploadAvatar = require('../middlewares/uploadAvatar');
+
 
 // Configuración de Multer para almacenamiento temporal
 const storage = multer.diskStorage({

@@ -33,7 +33,7 @@ const save = async (req, res) => {
         // Devolver respuesta exitosa
         return res.status(200).json({
             status: 'success',
-            message: 'Follow registrado con éxito',
+            message: 'Follow Registered Successfully',
             identity: req.user,
             user: followStored
         });
@@ -41,7 +41,7 @@ const save = async (req, res) => {
         // Manejar errores
         return res.status(500).json({
             status: 'error',
-            message: 'El follow no se ha guardado',
+            message: 'The follow has not been saved',
             error: error.message
         });
     }
@@ -63,20 +63,20 @@ const unfollow = async (req, res) => {
         if (result.deletedCount === 0) {
             return res.status(404).json({
                 status: 'error',
-                message: 'El follow no existe o ya fue eliminado'
+                message: 'The follow does not exist or has already been deleted'
             });
         }
 
         // Respuesta exitosa
         return res.status(200).json({
             status: 'success',
-            message: 'Follow eliminado correctamente',
+            message: 'Follow removed successfully',
         });
     } catch (err) {
         // Manejo de errores
         return res.status(500).json({
             status: 'error',
-            message: 'Error al intentar eliminar el follow',
+            message: 'Error trying to remove follow',
             error: err.message
         });
     }
@@ -113,7 +113,7 @@ const following = async (req, res) => {
 
         return res.status(200).json({
             status: "success",
-            message: "Los que sigo",
+            message: "The ones I follow",
             follows: result.docs,
             total: result.totalDocs,
             totalPages: result.totalPages,
@@ -122,10 +122,10 @@ const following = async (req, res) => {
             user_follow_me: followUserIds.followers
         });
     } catch (error) {
-        console.error("Error en la función following:", error);
+        console.error("Following function error:", error);
         return res.status(500).json({
             status: "error",
-            message: "Error al obtener los follows",
+            message: "Error getting the follows",
             error: error,
         });
     }
@@ -166,7 +166,7 @@ const followers = async (req, res) => {
 
         return res.status(200).json({
             status: "success",
-            message: "Listado de usuario que me siguen",
+            message: "List of users who follow me",
             follows: result.docs,
             total: result.totalDocs,
             totalPages: result.totalPages,
@@ -175,10 +175,10 @@ const followers = async (req, res) => {
             user_follow_me: followUserIds.followers
         });
     } catch (error) {
-        console.error("Error en la función following:", error);
+        console.error("Following function error:", error);
         return res.status(500).json({
             status: "error",
-            message: "Error al obtener los follows",
+            message: "Error getting the follows",
             error: error,
         });
     }

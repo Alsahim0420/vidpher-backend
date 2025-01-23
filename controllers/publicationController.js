@@ -259,8 +259,18 @@ const upload = async (req, res) => {
     }
 };
 
+
 const media = (req, res) => {
-    const file = req.params.file;
+    // Obtener el parámetro de consulta "file"
+    const file = req.query.file;
+
+    // Validar que se haya enviado el parámetro
+    if (!file) {
+        return res.status(400).json({
+            status: "error",
+            message: "No se ha proporcionado la URL del archivo"
+        });
+    }
 
     // Verificar que sea una URL válida
     if (!file.startsWith("https://") || !file.includes("cloudinary")) {

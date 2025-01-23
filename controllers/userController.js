@@ -129,8 +129,21 @@ const login = async (req, res) => {
             });
         }
 
+        if (!userFound.password) {
+            return res.status(500).json({
+                status: 'error',
+                message: 'Password field is missing for this user'
+            });
+        }
+        
+
         // Comprobar la contraseña con bcrypt
         const isPasswordValid = bcrypt.compareSync(params.password, userFound.password);
+
+        console.log('Params password:', params.password);
+        console.log('User found:', userFound);
+        console.log('User found password:', userFound.password);
+
 
         if (!isPasswordValid) {
             return res.status(400).json({

@@ -473,27 +473,30 @@ const resetPassword = async (req, res) => {
         // Buscar al usuario por email y verificar el OTP
         const foundUser = await user.findOne({ email, otp });
         if (!foundUser) {
-            return res.status(400).json({ message: 'Incorrect OTP or User Not Found' });
+            return res.status(400).json({ message: 'Incorrect OTP or User Not Found',
+                user: foundUser
+             });
         }
 
-        // Validar la nueva contraseña
-        validate({ newPassword }); // Asegúrate de que cumple con los requisitos
+         // Validación avanzada
+         validate.validate(foundUser);
 
-        // Encriptar la nueva contraseña
-        const hashedPassword = bcrypt.hashSync(newPassword, 10);
-        foundUser.password = hashedPassword;
+         // Encriptar contraseña
+         const hashedPassword = bcrypt.hashSync(newPassword, 10);
+         foundUser.password = hashedPassword;
 
-        // Limpiar el OTP después de usarlo
-        foundUser.otp = null;
+        // Actualizar la contraseña (asegúrate de hashear la contraseña en producción)
+        foundUser.otp = null; // Limpiar el OTP después de usarlo
         await foundUser.save();
 
-        return res.status(200).json({ message: 'Successfully updated password' });
+        return res.status(200).json({ message: 'Successfully updated password',
+            user: foundUser
+         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        res.status(500).json({ message: 'Server error' });
     }
 };
-
 
 
 

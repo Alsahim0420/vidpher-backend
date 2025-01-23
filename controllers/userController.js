@@ -6,7 +6,6 @@ const Publication = require("../models/publication")
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const fs = require('fs'); 
 const cloudinary = require('../config/cloudinary-config');
 
 //Importar modulos

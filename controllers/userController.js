@@ -6,6 +6,8 @@ const Publication = require("../models/publication")
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const fs = require('fs'); 
+const cloudinary = require('../config/cloudinary-config');
 
 //Importar modulos
 const user = require('../models/user');
@@ -333,74 +335,53 @@ const update = async (req, res) => {
     }
 };
 
-const upload = async (req, res) => {
+const updateAvatar = async (userId, avatarUrl) => {
     try {
-        // Recoger el fichero de imagen y comprobar que existe
-        if (!req.file) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se ha subido ningún archivo"
-            });
-        }
-
-        // Nombre del archivo
-        let file = req.file.originalname;
-
-        // Sacar la extensión del archivo
-        const image_split = file.split('\.');
-        const extension = image_split[1].toLowerCase();
-
-        // Si no es correcta, borrar archivo
-        if (extension !== "jpg" && extension !== "jpeg" && extension !== "png" && extension !== "gif") {
-            const file_path = req.file.path;
-
-            // Usar fs.unlink con Promesa o callback
-            fs.unlink(file_path, (err) => {
-                if (err) {
-                    return res.status(500).json({
-                        status: "error",
-                        message: "Error al borrar el archivo no válido",
-                        error: err
-                    });
-                }
-
-                return res.status(400).json({
-                    status: "error",
-                    message: "La extensión del archivo no es válida"
-                });
-            });
-
-            return; // Evitar enviar otra respuesta
-        }
-
-        // Actualizar el usuario con la nueva imagen usando `findOneAndUpdate` y `async/await`
-        const userUpdated = await user.findOneAndUpdate(
-            { _id: req.user.id }, // Filtro: id del usuario
-            { image: req.file.filename }, // Cambios a realizar
-            { new: true } // Devolver el documento actualizado
+        // Buscar y actualizar al usuario con la URL del avatar
+        const updatedUser = await User.findByIdAndUpdate(
+            userId, // Filtro por el ID del usuario
+            { image: avatarUrl }, // Campo a actualizar
+            { new: true } // Devuelve el documento actualizado
         );
 
-        if (!userUpdated) {
-            return res.status(404).json({
-                status: "error",
-                message: "No se encontró el usuario para actualizar la imagen"
-            });
+        if (!updatedUser) {
+            throw new Error('No se encontró el usuario para actualizar el avatar');
         }
 
-        // Si es correcta, continuar con el flujo
-        return res.status(200).json({
-            status: "success",
-            message: "Subida de imágenes",
-            user: userUpdated,
-            files: req.file
+        return updatedUser;
+    } catch (error) {
+        console.error('Error actualizando el avatar:', error.message);
+        throw error;
+    }
+};
+
+
+const upload = async (req, res) => {
+    try {
+        // Verifica que se haya subido un archivo
+        if (!req.file) {
+            return res.status(400).json({ message: "No se ha subido ningún archivo." });
+        }
+
+        // Subir archivo a Cloudinary
+        const result = await cloudinary.uploader.upload(req.file.path, {
+            folder: 'avatars', // Carpeta opcional en Cloudinary
         });
 
-    } catch (err) {
-        return res.status(500).json({
-            status: "error",
-            message: "Error interno del servidor",
-            error: err
+        // Eliminar archivo temporal
+        fs.unlinkSync(req.file.path);
+
+        // Llama al controlador para actualizar el usuario con la URL del avatar
+        const updatedUser = await user.updateAvatar(req.user.id, result.secure_url);
+
+        res.status(200).json({
+            message: "Avatar subido correctamente.",
+            avatarUrl: result.secure_url,
+            user: updatedUser,
         });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Error al subir el avatar." });
     }
 };
 
@@ -533,5 +514,6 @@ module.exports = {
     avatar,
     counters,
     requestPasswordReset,
-    resetPassword
+    resetPassword,
+    updateAvatar,
 };

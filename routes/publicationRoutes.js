@@ -3,8 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const publicationController = require('../controllers/publicationController');
 const check = require("../middlewares/auth");
-const cloudinary = require('../config/cloudinary-config');
-const fs = require('fs');
+
 
 // Configuración de subida temporal
 const uploads = multer({ dest: 'temp/' });

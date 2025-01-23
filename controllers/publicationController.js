@@ -1,6 +1,7 @@
 //Importar modulos 
 const fs = require("fs");
 const path = require("path");
+const cloudinary = require('../config/cloudinary-config');
 
 //Importar modelos
 const Publication = require("../models/publication");
@@ -11,7 +12,7 @@ const followService = require("../services/followService");
 //acciones de prueba 
 const prueba_publication = (req, res) => {
     return res.status(200).json({
-        message: 'mensaje enviado desde: userController.js'
+        message: 'mensaje enviado desde: publicationController.js'
     })
 };
 

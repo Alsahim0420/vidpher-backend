@@ -178,9 +178,6 @@ const user = async (req, res) => {
 };
 
 
-
-
-
 const upload = async (req, res) => {
     try {
         // Obtener publicationId desde los parámetros
@@ -188,7 +185,7 @@ const upload = async (req, res) => {
 
         // Verificar si se envió un archivo
         if (!req.file) {
-            return res.status(404).json({
+            return res.status(400).json({
                 status: "error",
                 message: "No se ha subido ningún archivo",
             });
@@ -201,7 +198,7 @@ const upload = async (req, res) => {
         // Validar la extensión del archivo
         if (!["jpg", "jpeg", "png", "gif"].includes(extension)) {
             try {
-                await fs.unlink(req.file.path); // Eliminar archivo
+                await fs.unlinkSync(req.file.path); // Eliminar archivo
             } catch (err) {
                 return res.status(500).json({
                     status: "error",
@@ -216,10 +213,18 @@ const upload = async (req, res) => {
             });
         }
 
-        // Actualizar la publicación con la nueva imagen
+        // Subir archivo a Cloudinary
+        const result = await cloudinary.uploader.upload(req.file.path, {
+            folder: 'publications', // Carpeta opcional en Cloudinary
+        });
+
+        // Eliminar archivo temporal
+        fs.unlinkSync(req.file.path);
+
+        // Actualizar la publicación con la URL de la imagen almacenada en Cloudinary
         const publicationUpdated = await Publication.findOneAndUpdate(
             { user: req.user.id, _id: publicationId }, // Filtro
-            { file: req.file.filename }, // Datos a actualizar
+            { file: result.secure_url }, // Datos a actualizar
             { new: true } // Devolver el documento actualizado
         );
 
@@ -233,12 +238,13 @@ const upload = async (req, res) => {
         // Responder con éxito
         return res.status(200).json({
             status: "success",
-            message: "Subida de imágenes exitosa",
+            message: "Subida de imagen exitosa",
             publication: publicationUpdated,
-            file: req.file,
+            imageUrl: result.secure_url,
         });
 
     } catch (err) {
+        console.error(err);
         return res.status(500).json({
             status: "error",
             message: "Error interno del servidor",
@@ -246,6 +252,7 @@ const upload = async (req, res) => {
         });
     }
 };
+
 
 const media = (req, res) => {
     // Sacar el parámetro

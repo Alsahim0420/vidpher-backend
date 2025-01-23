@@ -3,6 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const cloudinary = require('../config/cloudinary-config');
 
+
 //Importar modelos
 const Publication = require("../models/publication");
 
@@ -183,6 +184,10 @@ const upload = async (req, res) => {
     try {
         // Obtener publicationId desde los parámetros
         const publicationId = req.params.id;
+
+        console.log('Publication ID:', publicationId);
+        console.log('User ID:', req.user.id);
+
 
         // Verificar si se envió un archivo
         if (!req.file) {

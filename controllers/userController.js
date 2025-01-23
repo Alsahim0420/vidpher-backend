@@ -40,7 +40,7 @@ const register = async (req, res) => {
     if (!params.username || !params.password || !params.email || !params.role) {
         return res.status(400).json({
             status: 'error',
-            message: 'Faltan datos por enviar',
+            message: 'There is still data to send',
         });
     }
 
@@ -63,7 +63,7 @@ const register = async (req, res) => {
         if (existingUser) {
             return res.status(409).json({
                 status: 'error',
-                message: 'El usuario o email ya están registrados',
+                message: 'The username or email address is already registered',
             });
         }
 
@@ -77,7 +77,7 @@ const register = async (req, res) => {
 
         return res.status(201).json({
             status: 'success',
-            message: 'Usuario registrado correctamente',
+            message: 'Successfully registered user',
             user: userStored,
         });
     } catch (error) {
@@ -92,7 +92,7 @@ const register = async (req, res) => {
         // Manejar otros errores
         return res.status(500).json({
             status: 'error',
-            message: 'Error en la consulta de usuarios o al guardar el usuario',
+            message: 'User query or user save failed',
             error: error.message,
         });
     }
@@ -111,7 +111,7 @@ const login = async (req, res) => {
         console.log(params.username);
         return res.status(400).json({
             status: 'error',
-            message: 'Faltan datos por enviar'
+            message: 'There is still data to send'
         });
     }
 
@@ -119,13 +119,13 @@ const login = async (req, res) => {
         // Buscar el usuario en la base de datos
         const userFound = await user
             .findOne({ username: params.username })
-            .select('password username email role image bio');
+            .select('username email role image');
 
         // Si el usuario no existe
         if (!userFound) {
             return res.status(400).json({
                 status: 'error',
-                message: 'El usuario no existe'
+                message: 'The user does not exist'
             });
         }
 
@@ -135,7 +135,7 @@ const login = async (req, res) => {
         if (!isPasswordValid) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Contraseña incorrecta'
+                message: 'Incorrect password'
             });
         }
 
@@ -146,7 +146,7 @@ const login = async (req, res) => {
         // Respuesta exitosa
         return res.status(200).json({
             status: 'success',
-            message: 'Login correcto',
+            message: 'Correct login',
             user: userFound,
             token: token
         });
@@ -154,7 +154,7 @@ const login = async (req, res) => {
         // Manejo de errores
         return res.status(500).json({
             status: 'error',
-            message: 'Error en el servidor',
+            message: 'Server Error',
             error: error.message,
         });
     }
@@ -174,7 +174,7 @@ const profile = async (req, res) => {
         if (!userFound) {
             return res.status(404).send({
                 status: 'error',
-                message: 'Usuario no encontrado'
+                message: 'User Not Found'
             });
         }
 
@@ -194,7 +194,7 @@ const profile = async (req, res) => {
         // Manejo de errores
         return res.status(500).send({
             status: 'error',
-            message: 'Error en la consulta',
+            message: 'Query Error',
             error: err.message
         });
     }
@@ -223,7 +223,7 @@ const list = async (req, res) => {
         if (!result.docs || result.docs.length === 0) {
             return res.status(404).send({
                 status: "error",
-                message: "Usuarios no encontrados",
+                message: "Users not found",
             });
         }
 
@@ -232,7 +232,7 @@ const list = async (req, res) => {
 
         return res.status(200).send({
             status: "success",
-            message: "Listado de usuarios",
+            message: "List of users",
             page: result.page,
             itemsPerPage: result.limit,
             total: result.totalDocs,
@@ -243,11 +243,11 @@ const list = async (req, res) => {
             followersCount: followUserIds.followersCount, // Cantidad de seguidores
         });
     } catch (error) {
-        console.error("Error en la función list:", error);
+        console.error("List function error:", error);
         return res.status(500).send({
             status: "error",
-            message: "Error al obtener el listado de usuarios",
-            error: error.message || "Error desconocido",
+            message: "Error obtaining the list of users",
+            error: error.message || "Unknown error",
         });
     }
 };
@@ -270,7 +270,7 @@ const update = async (req, res) => {
     if (!user_update.email || !user_update.username) {
         return res.status(400).json({
             status: "error",
-            message: "Email y username son requeridos",
+            message: "Email and username are required",
         });
     }
 
@@ -293,7 +293,7 @@ const update = async (req, res) => {
         if (userIsset) {
             return res.status(400).json({
                 status: "error",
-                message: "El usuario ya está registrado",
+                message: "User is already registered",
             });
         }
 
@@ -315,19 +315,19 @@ const update = async (req, res) => {
         if (!updatedUser) {
             return res.status(404).json({
                 status: "error",
-                message: "Usuario no encontrado",
+                message: "User Not Found",
             });
         }
 
         return res.status(200).json({
             status: "success",
-            message: "Usuario actualizado correctamente",
+            message: "User Updated Successfully",
             user: updatedUser,
         });
     } catch (error) {
         return res.status(500).json({
             status: "error",
-            message: "Error en la consulta de usuarios o al actualizar el usuario",
+            message: "User query or user refresh failed",
             error: error.message,
         });
     }
@@ -343,12 +343,12 @@ const updateAvatar = async (userId, avatarUrl) => {
         );
 
         if (!updatedUser) {
-            throw new Error('No se encontró el usuario para actualizar el avatar');
+            throw new Error('User not found to update avatar');
         }
 
         return updatedUser;
     } catch (error) {
-        console.error('Error actualizando el avatar:', error.message);
+        console.error('Error updating avatar:', error.message);
         throw error;
     }
 };
@@ -358,7 +358,7 @@ const upload = async (req, res) => {
     try {
         // Verifica que se haya subido un archivo
         if (!req.file) {
-            return res.status(400).json({ message: "No se ha subido ningún archivo." });
+            return res.status(400).json({ message: "No file uploaded." });
         }
 
         // Subir archivo a Cloudinary
@@ -373,13 +373,13 @@ const upload = async (req, res) => {
         const updatedUser = await user.updateAvatar(req.user.id, result.secure_url);
 
         res.status(200).json({
-            message: "Avatar subido correctamente.",
+            message: "Avatar uploaded successfully.",
             avatarUrl: result.secure_url,
             user: updatedUser,
         });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: "Error al subir el avatar." });
+        res.status(500).json({ message: "Error uploading avatar." });
     }
 };
 
@@ -396,7 +396,7 @@ const avatar = (req, res) => {
             // Si el archivo no existe
             return res.status(404).json({
                 status: "error",
-                message: "La imagen no existe"
+                message: "The image does not exist"
             });
         }
 
@@ -428,11 +428,11 @@ const counters = async (req, res) => {
         });
     } catch (err) {
         // Capturar y responder con el error detallado
-        console.error("Error en counters:", err); // Para depuración
+        console.error("Error in counters:", err); // Para depuración
         return res.status(500).json({
             status: "error",
-            message: "Error interno del servidor",
-            error: err.message || "Error desconocido"
+            message: "Internal Server Error",
+            error: err.message || "Unknown error"
         });
     }
 };
@@ -447,7 +447,7 @@ const requestPasswordReset = async (req, res) => {
         // Buscar al usuario por email
         const foundUser = await user.findOne({ email });
         if (!foundUser) {
-            return res.status(404).json({ message: 'Usuario no encontrado' });
+            return res.status(404).json({ message: 'User Not Found' });
         }
 
         // Generar el OTP y guardarlo en el usuario
@@ -458,10 +458,10 @@ const requestPasswordReset = async (req, res) => {
         // Aquí podrías enviar el OTP por correo electrónico (usando nodemailer, por ejemplo)
         console.log(`OTP generado: ${otp}`); // En producción, no expongas el OTP en los logs
 
-        return res.status(200).json({ message: 'OTP enviado. Revisa tu correo.' });
+        return res.status(200).json({ message: 'OTP sent. Check your email.' });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error en el servidor' });
+        res.status(500).json({ message: 'Server Error' });
     }
 };
 
@@ -473,7 +473,7 @@ const resetPassword = async (req, res) => {
         // Buscar al usuario por email y verificar el OTP
         const foundUser = await user.findOne({ email, otp });
         if (!foundUser) {
-            return res.status(400).json({ message: 'OTP incorrecto o usuario no encontrado',
+            return res.status(400).json({ message: 'Incorrect OTP or User Not Found',
                 user: foundUser
              });
         }
@@ -489,12 +489,12 @@ const resetPassword = async (req, res) => {
         foundUser.otp = null; // Limpiar el OTP después de usarlo
         await foundUser.save();
 
-        return res.status(200).json({ message: 'Contraseña actualizada con éxito',
+        return res.status(200).json({ message: 'Successfully updated password',
             user: foundUser
          });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Error en el servidor' });
+        res.status(500).json({ message: 'Server error' });
     }
 };
 

@@ -259,27 +259,19 @@ const upload = async (req, res) => {
     }
 };
 
-
 const media = (req, res) => {
-    // Sacar el parámetro
     const file = req.params.file;
 
-    // Montar el path real de la imagen
-    const filePath = path.resolve('./uploads/publications/' + file);
+    // Verificar que sea una URL válida
+    if (!file.startsWith("https://") || !file.includes("cloudinary")) {
+        return res.status(400).json({
+            status: "error",
+            message: "URL no válida o no compatible"
+        });
+    }
 
-    // Comprobar si el archivo existe
-    fs.stat(filePath, (error) => {
-        if (error) {
-            // Si el archivo no existe
-            return res.status(404).json({
-                status: "error",
-                message: "La imagen no existe"
-            });
-        }
-
-        // Si existe, devolver el archivo
-        return res.sendFile(filePath);
-    });
+    // Redirigir al archivo en Cloudinary
+    return res.redirect(file);
 };
 
 

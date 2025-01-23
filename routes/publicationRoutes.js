@@ -32,7 +32,7 @@ router.post("/upload/:id", [check.auth, uploads.single("file0")], async (req, re
         fs.unlinkSync(req.file.path);
 
         // Actualizar la publicación con la URL del archivo
-        const updatedPublication = await publicationController.updateMedia(req.params.id, result.secure_url);
+        const updatedPublication = await publicationController.media(req.params.id, result.secure_url);
 
         res.status(200).json({
             message: 'Archivo subido y asociado a la publicación exitosamente.',

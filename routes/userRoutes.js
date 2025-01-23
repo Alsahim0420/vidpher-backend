@@ -43,7 +43,7 @@ router.post("/upload", [check.auth, uploads.single("file0")], async (req, res) =
         fs.unlinkSync(req.file.path);
 
         // Llama al controlador para actualizar el usuario con la URL del avatar
-        const updatedUser = await userController.updateAvatar(req.user.id, result.secure_url);
+        const updatedUser = await userController.update(req.user.id, result.secure_url);
 
         res.status(200).json({
             message: "Avatar subido correctamente.",

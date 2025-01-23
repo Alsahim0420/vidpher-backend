@@ -336,7 +336,7 @@ const update = async (req, res) => {
 const updateAvatar = async (userId, avatarUrl) => {
     try {
         // Buscar y actualizar al usuario con la URL del avatar
-        const updatedUser = await User.findByIdAndUpdate(
+        const updatedUser = await user.findByIdAndUpdate(
             userId, // Filtro por el ID del usuario
             { image: avatarUrl }, // Campo a actualizar
             { new: true } // Devuelve el documento actualizado

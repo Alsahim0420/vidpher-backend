@@ -2,6 +2,7 @@
 const fs = require("fs");
 const path = require("path");
 const cloudinary = require('../config/cloudinary-config');
+const Suggestions = require('../models/suggestions');
 
 
 //Importar modelos

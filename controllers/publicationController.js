@@ -348,12 +348,18 @@ const likePublication = async (req, res) => {
             return res.status(404).json({ message: "Publicación no encontrada" });
         }
 
+        console.log("Likes después de incrementar:", publication.likes);
+
         // Verificar si la publicación llegó a 40 likes
         if (publication.likes >= 40 && !publication.suggested) {
+            console.log("La publicación ha alcanzado 40 likes y no ha sido sugerida aún.");
+
             // Comprobar si la publicación ya está en la colección "Suggestion"
             const existingSuggestion = await Suggestion.findOne({ originalPublicationId: publication._id });
 
             if (!existingSuggestion) {
+                console.log("No se encontró una sugerencia existente, creando una nueva.");
+
                 // Validar campos de la publicación antes de crear la sugerencia
                 const suggestionData = {
                     text: publication.text || "Texto no disponible", // Campo obligatorio
@@ -373,6 +379,7 @@ const likePublication = async (req, res) => {
                 // Actualizar la publicación para marcarla como sugerida
                 publication.suggested = true;
                 await publication.save();
+                console.log("Sugerencia creada y publicación marcada como sugerida.");
             }
         } else if (publication.likes >= 40) {
             // Si la sugerencia ya existe, actualiza los datos (likes)

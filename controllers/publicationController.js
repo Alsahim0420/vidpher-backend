@@ -348,7 +348,7 @@ const likePublication = async (req, res) => {
             return res.status(404).json({ message: "Publicación no encontrada" });
         }
 
-        // Verificar si la publicación llegó a 40 likes y no ha sido sugerida previamente
+        // Verificar si la publicación llegó a 40 likes
         if (publication.likes >= 40 && !publication.suggested) {
             // Comprobar si la publicación ya está en la colección "Suggestion"
             const existingSuggestion = await Suggestion.findOne({ originalPublicationId: publication._id });
@@ -374,6 +374,17 @@ const likePublication = async (req, res) => {
                 publication.suggested = true;
                 await publication.save();
             }
+        } else if (publication.likes >= 40) {
+            // Si la sugerencia ya existe, actualiza los datos (likes)
+            const existingSuggestion = await Suggestion.findOneAndUpdate(
+                { originalPublicationId: publication._id },
+                { likes: publication.likes }, // Actualizar los likes
+                { new: true } // Retornar el documento actualizado
+            );
+
+            if (existingSuggestion) {
+                console.log("Sugerencia actualizada con nuevos likes:", existingSuggestion);
+            }
         }
 
         res.status(200).json({ message: "Like agregado con éxito", publication });
@@ -382,6 +393,7 @@ const likePublication = async (req, res) => {
         res.status(500).json({ message: "Error en el servidor" });
     }
 };
+
 
 
 

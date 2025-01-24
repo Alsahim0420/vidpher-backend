@@ -434,7 +434,6 @@ const addComment = async (req, res) => {
         const { text } = req.body; // Texto del comentario
         const userId = req.user.id; // ID del usuario
 
-
         // Buscar la publicación por ID y agregar el comentario
         const publication = await Publication.findByIdAndUpdate(
             publicationId,
@@ -446,12 +445,53 @@ const addComment = async (req, res) => {
             return res.status(404).json({ message: "Publicación no encontrada" });
         }
 
+        // Verificar si la publicación ha superado los 40 likes
+        if (publication.likes >= 40 && !publication.suggested) {
+            // Comprobar si la publicación ya está en la colección "Suggestion"
+            const existingSuggestion = await Suggestion.findOne({ originalPublicationId: publication._id });
+
+            if (!existingSuggestion) {
+                // Validar campos de la publicación antes de crear la sugerencia
+                const suggestionData = {
+                    text: publication.text || "Texto no disponible", // Campo obligatorio
+                    user: publication.user || null, // Asegurarse de que el autor esté presente
+                    createdAt: publication.createdAt || Date.now(), // Fecha de creación
+                    likes: publication.likes,
+                    comments: publication.comments, // Obtener los comentarios de la publicación
+                    originalPublicationId: publication._id,
+                    // Agregar otros campos relevantes
+                };
+
+                // Crear la sugerencia
+                const suggestion = new Suggestion(suggestionData);
+
+                // Guardar la sugerencia en la base de datos
+                await suggestion.save();
+
+                // Actualizar la publicación para marcarla como sugerida
+                publication.suggested = true;
+                await publication.save();
+            }
+        } else if (publication.likes >= 40) {
+            // Si la sugerencia ya existe, actualizar los comentarios en la sugerencia
+            const existingSuggestion = await Suggestion.findOneAndUpdate(
+                { originalPublicationId: publication._id },
+                { comments: publication.comments }, // Actualizar los comentarios
+                { new: true } // Retornar el documento actualizado
+            );
+
+            if (existingSuggestion) {
+                console.log("Sugerencia actualizada con nuevos comentarios:", existingSuggestion);
+            }
+        }
+
         res.status(200).json({ message: "Comentario agregado con éxito", publication });
     } catch (error) {
         console.error("Error al agregar el comentario:", error);
         res.status(500).json({ message: "Error en el servidor" });
     }
 };
+
 
 module.exports = { addComment };
 

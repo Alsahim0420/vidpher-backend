@@ -4,6 +4,14 @@ const cloudinary = require('cloudinary').v2; // Para subir archivos a Cloudinary
 const Story = require('./models/Story'); // Asegúrate de importar el modelo Story
 
 
+//acciones de prueba 
+const prueba_story = (req, res) => {
+    return res.status(200).json({
+        message: 'mensaje enviado desde: storyController.js',
+        usuario: req.user
+    })
+};
+
 const upload = async (req, res) => {
     try {
         console.log('User ID:', req.user.id);
@@ -76,4 +84,5 @@ const upload = async (req, res) => {
 
 module.exports = {
     upload,
+    prueba_story
 };

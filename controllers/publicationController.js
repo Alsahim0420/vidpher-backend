@@ -331,8 +331,6 @@ const feed = async (req, res) => {
         });
     }
 };
-
-// Método para dar "like" a una publicación
 const likePublication = async (req, res) => {
     try {
         const { publicationId } = req.params;
@@ -354,16 +352,21 @@ const likePublication = async (req, res) => {
             const existingSuggestion = await Suggestion.findOne({ originalPublicationId: publication._id });
 
             if (!existingSuggestion) {
-                // Crear una sugerencia con la información de la publicación
-                const suggestion = new Suggestion({
-                    title: publication.user,
-                    text: publication.text || "Texto no disponible", // Asegurarse de incluir 'text'
-                    user: publication.user,
-                    createdAt: publication.createdAt,
+                // Validar campos de la publicación antes de crear la sugerencia
+                const suggestionData = {
+                    text: publication.text || "Texto no disponible", // Campo obligatorio
+                    user: publication.user || null, // Asegurarse de que el autor esté presente
+                    createdAt: publication.createdAt || Date.now(), // Fecha de creación
                     likes: publication.likes,
-                    originalPublicationId: publication._id, // Guardar referencia a la publicación original
-                    // Agrega aquí otros campos relevantes que tenga tu modelo Publication
-                });
+                    originalPublicationId: publication._id,
+                    // Agregar otros campos relevantes
+                };
+
+                // Mostrar datos para depuración
+                console.log("Datos para Suggestion:", suggestionData);
+
+                // Crear la sugerencia
+                const suggestion = new Suggestion(suggestionData);
 
                 // Guardar la sugerencia en la base de datos
                 await suggestion.save();
@@ -372,10 +375,11 @@ const likePublication = async (req, res) => {
 
         res.status(200).json({ message: "Like agregado con éxito", publication });
     } catch (error) {
-        console.error(error);
+        console.error("Error al dar like:", error);
         res.status(500).json({ message: "Error en el servidor" });
     }
 };
+
 
 
 

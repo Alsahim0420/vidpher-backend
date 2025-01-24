@@ -331,6 +331,8 @@ const feed = async (req, res) => {
         });
     }
 };
+
+
 const likePublication = async (req, res) => {
     try {
         const { publicationId } = req.params;
@@ -346,8 +348,8 @@ const likePublication = async (req, res) => {
             return res.status(404).json({ message: "Publicación no encontrada" });
         }
 
-        // Verificar si la publicación llegó a 40 likes
-        if (publication.likes >= 40) {
+        // Verificar si la publicación llegó a 40 likes y no ha sido sugerida previamente
+        if (publication.likes >= 40 && !publication.suggested) {
             // Comprobar si la publicación ya está en la colección "Suggestion"
             const existingSuggestion = await Suggestion.findOne({ originalPublicationId: publication._id });
 
@@ -362,14 +364,15 @@ const likePublication = async (req, res) => {
                     // Agregar otros campos relevantes
                 };
 
-                // Mostrar datos para depuración
-                console.log("Datos para Suggestion:", suggestionData);
-
                 // Crear la sugerencia
                 const suggestion = new Suggestion(suggestionData);
 
                 // Guardar la sugerencia en la base de datos
                 await suggestion.save();
+
+                // Actualizar la publicación para marcarla como sugerida
+                publication.suggested = true;
+                await publication.save();
             }
         }
 

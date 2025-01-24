@@ -16,18 +16,20 @@ const PublicationSchema = Schema({
         type: Date,
         default: Date.now
     },
-    watchPublication:{
-        type:Boolean,
-        default:true
+    watchPublication: {
+        type: Boolean,
+        default: true
     },
-    likes:{
-        type:Number,
-        default:0
-        },  
-    comments:Array
-
-})
-
+    likes: {
+        type: Number,
+        default: 0
+    },
+    comments: Array,
+    suggested: { // Campo que indica si ya se ha creado una sugerencia
+        type: Boolean,
+        default: false
+    }
+});
 
 // Agrega el plugin de paginación
 PublicationSchema.plugin(mongoosePaginate);

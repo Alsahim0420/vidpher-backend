@@ -356,12 +356,12 @@ const likePublication = async (req, res) => {
             if (!existingSuggestion) {
                 // Crear una sugerencia con la información de la publicación
                 const suggestion = new Suggestion({
-                    title: publicationId.user,
-                    text: publicationId.text || "Texto no disponible", // Asegurarse de incluir 'text'
-                    user: publicationId.user,
-                    createdAt: publicationId.createdAt,
-                    likes: publicationId.likes,
-                    originalPublicationId: publicationId._id, // Guardar referencia a la publicación original
+                    title: publication.user,
+                    text: publication.text || "Texto no disponible", // Asegurarse de incluir 'text'
+                    user: publication.user,
+                    createdAt: publication.createdAt,
+                    likes: publication.likes,
+                    originalPublicationId: publication._id, // Guardar referencia a la publicación original
                     // Agrega aquí otros campos relevantes que tenga tu modelo Publication
                 });
 

@@ -11,6 +11,7 @@ const prueba_story = (req, res) => {
     })
 };
 
+
 const upload = async (req, res) => {
     try {
         console.log('User ID:', req.user.id);
@@ -58,6 +59,7 @@ const upload = async (req, res) => {
             user: req.user.id,
             text: req.body.text || "", // Texto opcional en el cuerpo de la solicitud
             file: result.secure_url,
+            expiresAt: Date.now() + 24 * 60 * 60 * 1000, // Expira en 24 horas
             suggested: req.body.suggested || false, // Opcional: sugerencia
         });
 

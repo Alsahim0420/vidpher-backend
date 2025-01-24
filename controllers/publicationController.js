@@ -332,7 +332,6 @@ const feed = async (req, res) => {
     }
 };
 
-
 // Método para dar "like" a una publicación
 const likePublication = async (req, res) => {
     try {
@@ -357,12 +356,12 @@ const likePublication = async (req, res) => {
             if (!existingSuggestion) {
                 // Crear una sugerencia con la información de la publicación
                 const suggestion = new Suggestion({
-                    title: publication.title,
-                    content: publication.content,
-                    author: publication.author,
-                    createdAt: publication.createdAt,
-                    likes: publication.likes,
-                    originalPublicationId: publication._id, // Guardar referencia a la publicación original
+                    title: publicationId.user,
+                    text: publicationId.text || "Texto no disponible", // Asegurarse de incluir 'text'
+                    user: publicationId.user,
+                    createdAt: publicationId.createdAt,
+                    likes: publicationId.likes,
+                    originalPublicationId: publicationId._id, // Guardar referencia a la publicación original
                     // Agrega aquí otros campos relevantes que tenga tu modelo Publication
                 });
 

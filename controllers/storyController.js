@@ -1,7 +1,7 @@
 const Story = require('./models/Story'); // Ajusta la ruta según tu proyecto
 const fs = require('fs'); // Para trabajar con el sistema de archivos
 const cloudinary = require('cloudinary').v2; // Para subir archivos a Cloudinary
-const Story = require('./models/Story'); // Asegúrate de importar el modelo Story
+const Story = require('./models/story'); // Asegúrate de importar el modelo Story
 
 
 //acciones de prueba 

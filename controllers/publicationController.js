@@ -348,12 +348,36 @@ const likePublication = async (req, res) => {
             return res.status(404).json({ message: "Publicación no encontrada" });
         }
 
+        // Verificar si la publicación llegó a 40 likes
+        if (publication.likes >= 40) {
+            // Comprobar si la publicación ya está en la colección "Suggestion"
+            const existingSuggestion = await Suggestion.findOne({ originalPublicationId: publication._id });
+
+            if (!existingSuggestion) {
+                // Crear una sugerencia con la información de la publicación
+                const suggestion = new Suggestion({
+                    title: publication.title,
+                    content: publication.content,
+                    author: publication.author,
+                    createdAt: publication.createdAt,
+                    likes: publication.likes,
+                    originalPublicationId: publication._id, // Guardar referencia a la publicación original
+                    // Agrega aquí otros campos relevantes que tenga tu modelo Publication
+                });
+
+                // Guardar la sugerencia en la base de datos
+                await suggestion.save();
+            }
+        }
+
         res.status(200).json({ message: "Like agregado con éxito", publication });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: "Error en el servidor" });
     }
 };
+
+
 
 // Método para quitar el like de una publicación
 const dislikePublication = async (req, res) => {

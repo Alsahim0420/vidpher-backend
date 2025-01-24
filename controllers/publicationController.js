@@ -376,13 +376,12 @@ const likePublication = async (req, res) => {
             }
         } else if (publication.likes >= 40) {
             // Si la sugerencia ya existe, actualiza los datos (likes)
-            const existingSuggestion = await Suggestion.findOneAndUpdate(
-                { originalPublicationId: publication._id },
-                { likes: publication.likes }, // Actualizar los likes
-                { new: true } // Retornar el documento actualizado
-            );
+            const existingSuggestion = await Suggestion.findOne({ originalPublicationId: publication._id });
 
             if (existingSuggestion) {
+                // Actualizar los likes de la sugerencia con los de la publicación
+                existingSuggestion.likes = publication.likes;
+                await existingSuggestion.save();
                 console.log("Sugerencia actualizada con nuevos likes:", existingSuggestion);
             }
         }

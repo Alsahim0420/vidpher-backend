@@ -101,14 +101,12 @@ const register = async (req, res) => {
 
 
 
-
 const login = async (req, res) => {
     // Recoger los parámetros
     const params = req.body;
 
     // Validar los datos recibidos
     if (!params.username || !params.password) {
-        console.log(params.username);
         return res.status(400).json({
             status: 'error',
             message: 'There is still data to send'
@@ -135,15 +133,9 @@ const login = async (req, res) => {
                 message: 'Password field is missing for this user'
             });
         }
-        
 
         // Comprobar la contraseña con bcrypt
         const isPasswordValid = bcrypt.compareSync(params.password, userFound.password);
-
-        console.log('Params password:', params.password);
-        console.log('User found:', userFound);
-        console.log('User found password:', userFound.password);
-
 
         if (!isPasswordValid) {
             return res.status(400).json({
@@ -152,26 +144,44 @@ const login = async (req, res) => {
             });
         }
 
-        // Generar y devolver el token (opcional, según tu implementación)
+        // Generar el token
         const token = jwt.createToken(userFound);
 
+        // Consultar publicaciones asociadas al usuario
+        const publications = await Publication.find({ user: userFound._id })
+            .select('file likes comments');
 
-        // Respuesta exitosa
+        // Consultar contadores relacionados al usuario
+        const following = await Follow.countDocuments({ user: userFound._id });
+        const followed = await Follow.countDocuments({ followed: userFound._id });
+        const publicationsCount = await Publication.countDocuments({ user: userFound._id });
+
+        // Responder con la información del usuario, token, publicaciones y contadores
         return res.status(200).json({
             status: 'success',
             message: 'Correct login',
             user: userFound,
-            token: token
+            token: token,
+            data: {
+                publications,
+                counters: {
+                    following,
+                    followed,
+                    publications: publicationsCount
+                }
+            }
         });
     } catch (error) {
         // Manejo de errores
+        console.error("Error in login:", error);
         return res.status(500).json({
             status: 'error',
             message: 'Server Error',
-            error: error.message,
+            error: error.message
         });
     }
 };
+
 
 
 const profile = async (req, res) => {

@@ -2,6 +2,10 @@ const {Schema, model} = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
 
 const UserSchema = new Schema({
+    name: {
+        type: String,
+        required: true
+    },
     username: {
         type: String,
         required: true

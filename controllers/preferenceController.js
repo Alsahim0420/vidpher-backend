@@ -44,7 +44,7 @@ const save = async (req, res) => {
 };
 
 
-const PreferencesById = async (req, res) => {
+const preferencesById = async (req, res) => {
     try {
         // Obtener el id del usuario desde el token (req.user.id)
         const userId = req.user.id;
@@ -77,7 +77,7 @@ const PreferencesById = async (req, res) => {
 };
 
 
-const AllPreferences = async (req, res) => {
+const allPreferences = async (req, res) => {
     try {
         // Buscar todas las preferencias en la base de datos
         const preferences = await Preferences.find().populate('user', 'name email'); // Usamos populate para incluir datos del usuario
@@ -110,6 +110,6 @@ const AllPreferences = async (req, res) => {
 
 module.exports = {
     save,
-    PreferencesById,
-    AllPreferences
+    preferencesById,
+    allPreferences
 };

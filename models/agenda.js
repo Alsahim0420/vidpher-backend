@@ -20,7 +20,7 @@ const AgendaSchema = Schema({
         required: true
     },
     duration: {
-        type: Date,
+        type: Number,  // Cambiado a Number para representar la duración en horas
         required: true
     },
     date: {

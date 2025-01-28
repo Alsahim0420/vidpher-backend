@@ -18,12 +18,21 @@ const save = async (req, res) => {
             });
         }
 
+        // Validar que la duración sea un número
+        const durationInHours = Number(duration);
+        if (isNaN(durationInHours)) {
+            return res.status(400).send({
+                status: 'error',
+                message: 'La duración debe ser un número válido de horas.'
+            });
+        }
+
         // Crear un nuevo registro en la agenda
         const newAgendaEntry = new Agenda({
             user: userId,
             location,
             title,
-            duration,
+            duration: durationInHours,  // Guardar la duración como número
             time,
             date
         });
@@ -47,6 +56,7 @@ const save = async (req, res) => {
         });
     }
 };
+
 
 module.exports = {
     save

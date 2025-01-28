@@ -56,21 +56,21 @@ const preferencesById = async (req, res) => {
         if (!preferences) {
             return res.status(404).send({
                 status: 'error',
-                message: 'No se encontraron preferencias para el usuario proporcionado.'
+                message: 'No preferences were found for the user provided.'
             });
         }
 
         // Enviar las preferencias como respuesta
         return res.status(200).send({
             status: 'success',
-            message: 'Preferencias obtenidas con éxito.',
+            message: 'Successfully obtained preferences.',
             preferences
         });
     } catch (err) {
         // Manejo de errores
         return res.status(500).send({
             status: 'error',
-            message: 'Error al obtener las preferencias.',
+            message: 'Error getting preferences.',
             error: err.message
         });
     }
@@ -86,21 +86,21 @@ const allPreferences = async (req, res) => {
         if (!preferences || preferences.length === 0) {
             return res.status(404).send({
                 status: 'error',
-                message: 'No se encontraron preferencias en el sistema.'
+                message: 'No preferences were found in the system.'
             });
         }
 
         // Enviar las preferencias como respuesta
         return res.status(200).send({
             status: 'success',
-            message: 'Preferencias obtenidas con éxito.',
+            message: 'Successfully obtained preferences.',
             preferences
         });
     } catch (err) {
         // Manejo de errores
         return res.status(500).send({
             status: 'error',
-            message: 'Error al obtener las preferencias.',
+            message: 'Error getting preferences.',
             error: err.message
         });
     }

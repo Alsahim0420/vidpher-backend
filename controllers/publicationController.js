@@ -18,41 +18,84 @@ const prueba_publication = (req, res) => {
     })
 };
 
-
 const save = async (req, res) => {
     try {
         // Recoger datos del body
         const params = req.body;
 
-        // Si no llegan datos, enviar respuesta negativa
+        // Verificar que el texto está presente
         if (!params.text) {
-            return res.status(400).send({
-                error: "error",
+            return res.status(400).json({
+                status: "error",
                 message: "You must send a text message",
             });
         }
 
+        // Verificar si se envió un archivo
+        if (!req.file) {
+            return res.status(400).json({
+                status: "error",
+                message: "No file uploaded",
+            });
+        }
+
+        // Obtener el nombre del archivo y la extensión
+        const file = req.file.originalname;
+        const extension = file.split('.').pop().toLowerCase();
+
+        // Validar la extensión del archivo
+        if (!["jpg", "jpeg", "png", "gif"].includes(extension)) {
+            try {
+                await fs.unlinkSync(req.file.path); // Eliminar archivo no válido
+            } catch (err) {
+                return res.status(500).json({
+                    status: "error",
+                    message: "Failed to delete invalid file",
+                    error: err.message || err,
+                });
+            }
+
+            return res.status(400).json({
+                status: "error",
+                message: "File extension is invalid",
+            });
+        }
+
+        // Subir archivo a Cloudinary
+        const result = await cloudinary.uploader.upload(req.file.path, {
+            folder: 'publications', // Carpeta opcional en Cloudinary
+        });
+
+        // Eliminar archivo temporal
+        fs.unlinkSync(req.file.path);
+
         // Crear y rellenar el objeto del modelo
-        const newPublication = new Publication(params);
-        newPublication.user = req.user.id;
+        const newPublication = new Publication({
+            text: params.text,
+            file: result.secure_url, // URL de la imagen
+            user: req.user.id, // Usuario que crea la publicación
+        });
 
         // Guardar en la base de datos
         const publicationStored = await newPublication.save();
 
+        // Responder con éxito
         return res.status(200).json({
             status: "success",
             message: "The publication has been saved",
-            publicationStored,
+            publication: publicationStored,
         });
-    } catch (error) {
-        console.error("Error saving post:", error);
-        return res.status(500).send({
-            error: "error",
+
+    } catch (err) {
+        console.error("Error saving publication:", err);
+        return res.status(500).json({
+            status: "error",
             message: "Publication not saved",
-            details: error.message,
+            error: err.message || err,
         });
     }
 };
+
 
 
 // Sacar una publicacion

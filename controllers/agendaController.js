@@ -14,7 +14,7 @@ const save = async (req, res) => {
         if (!location || !title || !duration || !time || !date) {
             return res.status(400).send({
                 status: 'error',
-                message: 'Todos los campos son obligatorios.'
+                message: 'All fields are required.'
             });
         }
 
@@ -23,7 +23,7 @@ const save = async (req, res) => {
         if (isNaN(durationInHours)) {
             return res.status(400).send({
                 status: 'error',
-                message: 'La duración debe ser un número válido de horas.'
+                message: 'The duration must be a valid number of hours.'
             });
         }
 
@@ -43,7 +43,7 @@ const save = async (req, res) => {
         // Enviar respuesta de éxito
         return res.status(201).send({
             status: 'success',
-            message: 'Registro creado con éxito en la agenda.',
+            message: 'Successfully created record in the agenda.',
             agenda: newAgendaEntry
         });
 

@@ -7,10 +7,10 @@ const save = async (req, res) => {
         const userId = req.user.id;
 
         // Obtener los datos del cuerpo de la petición
-        const { lugar, title, hora, dia } = req.body;
+        const { location, title, duration , time, created_at } = req.body;
 
         // Validar que todos los campos obligatorios estén presentes
-        if (!lugar || !title || !hora || !dia) {
+        if (!location || !title || !duration || !time || !created_at) {
             return res.status(400).send({
                 status: 'error',
                 message: 'Todos los campos son obligatorios.'
@@ -20,10 +20,11 @@ const save = async (req, res) => {
         // Crear un nuevo registro en la agenda
         const newAgendaEntry = new Agenda({
             user: userId,
-            lugar,
-            title,
-            hora,
-            dia
+            location, 
+            title, 
+            duration , 
+            time, 
+            created_at
         });
 
         // Guardar el registro en la base de datos

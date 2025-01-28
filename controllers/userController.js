@@ -174,7 +174,6 @@ const login = async (req, res) => {
             status: 'success',
             message: 'Correct login',
             user: userFound,
-            token: token,
             data: {
                 publications,
                 counters: {
@@ -182,7 +181,8 @@ const login = async (req, res) => {
                     followed,
                     publications: publicationsCount
                 }
-            }
+            },
+            token: token
         });
     } catch (error) {
         // Manejo de errores

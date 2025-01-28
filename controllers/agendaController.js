@@ -1,5 +1,6 @@
 const Agenda = require('../models/Agenda');
 
+
 // Controlador para crear un dato en la agenda
 const save = async (req, res) => {
     try {
@@ -7,10 +8,10 @@ const save = async (req, res) => {
         const userId = req.user.id;
 
         // Obtener los datos del cuerpo de la petición
-        const { location, title, duration , time, created_at } = req.body;
+        const { location, title, duration, time, date } = req.body;
 
         // Validar que todos los campos obligatorios estén presentes
-        if (!location || !title || !duration || !time || !created_at) {
+        if (!location || !title || !duration || !time || !date) {
             return res.status(400).send({
                 status: 'error',
                 message: 'Todos los campos son obligatorios.'
@@ -20,11 +21,11 @@ const save = async (req, res) => {
         // Crear un nuevo registro en la agenda
         const newAgendaEntry = new Agenda({
             user: userId,
-            location, 
-            title, 
-            duration , 
-            time, 
-            created_at
+            location,
+            title,
+            duration,
+            time,
+            date
         });
 
         // Guardar el registro en la base de datos

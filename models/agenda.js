@@ -23,6 +23,9 @@ const AgendaSchema = Schema({
         type: Date,
         required: true
     },
+    date: {
+        type: Date,
+    },
     created_at: {
         type: Date,
         default: Date.now
@@ -31,4 +34,4 @@ const AgendaSchema = Schema({
 
 AgendaSchema.plugin(mongoosePaginate);
 
-module.exports = model('Agenda', AgendaSchema, 'agendas');
+module.exports = model('Agenda', AgendaSchema);

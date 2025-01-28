@@ -1,7 +1,7 @@
 const Preferences = require('../models/preferences');
 
 // Controlador para agregar preferencias a un usuario
-const savePreferences = async (req, res) => {
+const save = async (req, res) => {
     try {
         // Obtener el id del usuario desde el token
         const userId = req.user.id;
@@ -44,5 +44,5 @@ const savePreferences = async (req, res) => {
 };
 
 module.exports = {
-    savePreferences
+    save
 };

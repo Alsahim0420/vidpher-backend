@@ -28,7 +28,7 @@ const save = async (req, res) => {
         if (!params.text) {
             return res.status(400).send({
                 error: "error",
-                message: "Debes enviar un mensaje de texto",
+                message: "You must send a text message",
             });
         }
 
@@ -41,14 +41,14 @@ const save = async (req, res) => {
 
         return res.status(200).json({
             status: "success",
-            message: "La publicación ha sido guardada",
+            message: "The publication has been saved",
             publicationStored,
         });
     } catch (error) {
-        console.error("Error al guardar la publicación:", error);
+        console.error("Error saving post:", error);
         return res.status(500).send({
             error: "error",
-            message: "No se ha guardado la publicación",
+            message: "Publication not saved",
             details: error.message,
         });
     }
@@ -68,21 +68,21 @@ const detail = async (req, res) => {
         if (!publicationStored) {
             return res.status(404).send({
                 error: "error",
-                message: "La publicacion no existe",
+                message: "The publication does not exist",
             });
         }
 
         // Devolver respuesta
         return res.status(200).json({
             status: "success",
-            message: "Mostrar la publicacion",
+            message: "Show the post",
             publication: publicationStored,
         });
     } catch (error) {
         // Manejar errores
         return res.status(500).send({
             error: "error",
-            message: "Error al obtener la publicacion",
+            message: "Failed to get the post",
         });
     }
 };
@@ -104,21 +104,21 @@ const remove = async (req, res) => {
         if (!deletedPublication) {
             return res.status(404).json({
                 status: "error",
-                message: "La publicación no existe o no pertenece al usuario",
+                message: "The publication does not exist or does not belong to the user",
             });
         }
 
         // Devolver respuesta
         return res.status(200).json({
             status: "success",
-            message: "Publicación eliminada",
+            message: "Post deleted",
             publication: publicationId,
         });
     } catch (error) {
         // Manejar errores
         return res.status(500).json({
             status: "error",
-            message: "Error al eliminar la publicación",
+            message: "Failed to delete the post",
         });
     }
 };
@@ -153,7 +153,7 @@ const user = async (req, res) => {
         if (publications.length <= 0) {
             return res.status(404).send({
                 status: "error",
-                message: " No hay publicaciones para mostrar"
+                message: " No posts to show"
             })
         }
 
@@ -161,7 +161,7 @@ const user = async (req, res) => {
         // Devolver un resultado
         return res.status(200).json({
             status: "success",
-            message: "Publicaciones del perfil de un usuario",
+            message: "Posts from a user's profile",
             user: req.user,
             page,
             total,
@@ -174,7 +174,7 @@ const user = async (req, res) => {
         // Manejo de errores
         return res.status(500).json({
             status: "error",
-            message: "Error al obtener las publicaciones del usuario",
+            message: "Error getting the user's posts",
             error: error.message,
         });
     }
@@ -194,7 +194,7 @@ const upload = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({
                 status: "error",
-                message: "No se ha subido ningún archivo",
+                message: "No file uploaded",
             });
         }
 
@@ -209,14 +209,14 @@ const upload = async (req, res) => {
             } catch (err) {
                 return res.status(500).json({
                     status: "error",
-                    message: "Error al borrar el archivo no válido",
+                    message: "Failed to delete invalid file",
                     error: err,
                 });
             }
 
             return res.status(400).json({
                 status: "error",
-                message: "La extensión del archivo no es válida",
+                message: "File extension is invalid",
             });
         }
 
@@ -238,14 +238,14 @@ const upload = async (req, res) => {
         if (!publicationUpdated) {
             return res.status(404).json({
                 status: "error",
-                message: "No se encontró la publicación para actualizar la imagen",
+                message: "Publication not found to update image",
             });
         }
 
         // Responder con éxito
         return res.status(200).json({
             status: "success",
-            message: "Subida de imagen exitosa",
+            message: "Successful Image Upload",
             publication: publicationUpdated,
             imageUrl: result.secure_url,
         });
@@ -254,7 +254,7 @@ const upload = async (req, res) => {
         console.error(err);
         return res.status(500).json({
             status: "error",
-            message: "Error interno del servidor",
+            message: "Internal Server Error",
             error: err.message || err,
         });
     }
@@ -269,7 +269,7 @@ const media = (req, res) => {
     if (!file) {
         return res.status(400).json({
             status: "error",
-            message: "No se ha proporcionado la URL del archivo"
+            message: "File URL not provided"
         });
     }
 
@@ -277,7 +277,7 @@ const media = (req, res) => {
     if (!file.startsWith("https://") || !file.includes("cloudinary")) {
         return res.status(400).json({
             status: "error",
-            message: "URL no válida o no compatible"
+            message: "Invalid or unsupported URL"
         });
     }
 
@@ -316,7 +316,7 @@ const feed = async (req, res) => {
         // Responder con los datos
         return res.status(200).json({
             status: "success",
-            message: "Lista de publicaciones en el feed",
+            message: "List of posts in the feed",
             myFollows: myFollows.following,
             total: publications.totalDocs,
             page: publications.page,
@@ -326,7 +326,7 @@ const feed = async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             status: "error",
-            message: "No se han listado las publicaciones del feed",
+            message: "Feed posts not listed",
             error: error.message,
         });
     }
@@ -345,24 +345,24 @@ const likePublication = async (req, res) => {
         );
 
         if (!publication) {
-            return res.status(404).json({ message: "Publicación no encontrada" });
+            return res.status(404).json({ message: "Post not found" });
         }
 
         console.log("Likes después de incrementar:", publication.likes);
 
         // Verificar si la publicación llegó a 40 likes
         if (publication.likes >= 40 && !publication.suggested) {
-            console.log("La publicación ha alcanzado 40 likes y no ha sido sugerida aún.");
+            console.log("The post has reached 40 likes and has not yet been suggested.");
 
             // Comprobar si la publicación ya está en la colección "Suggestion"
             const existingSuggestion = await Suggestion.findOne({ originalPublicationId: publication._id });
 
             if (!existingSuggestion) {
-                console.log("No se encontró una sugerencia existente, creando una nueva.");
+                console.log("An existing suggestion was not found, creating a new one.");
 
                 // Validar campos de la publicación antes de crear la sugerencia
                 const suggestionData = {
-                    text: publication.text || "Texto no disponible", // Campo obligatorio
+                    text: publication.text || "Text not available", // Campo obligatorio
                     user: publication.user || null, // Asegurarse de que el autor esté presente
                     createdAt: publication.createdAt || Date.now(), // Fecha de creación
                     likes: publication.likes,
@@ -379,7 +379,7 @@ const likePublication = async (req, res) => {
                 // Actualizar la publicación para marcarla como sugerida
                 publication.suggested = true;
                 await publication.save();
-                console.log("Sugerencia creada y publicación marcada como sugerida.");
+                console.log("Suggestion created and post marked as suggested.");
             }
         } else if (publication.likes >= 40) {
             // Si la sugerencia ya existe, actualiza los datos (likes)
@@ -389,14 +389,14 @@ const likePublication = async (req, res) => {
                 // Actualizar los likes de la sugerencia con los de la publicación
                 existingSuggestion.likes = publication.likes;
                 await existingSuggestion.save();
-                console.log("Sugerencia actualizada con nuevos likes:", existingSuggestion);
+                console.log("Updated suggestion with new likes:", existingSuggestion);
             }
         }
 
-        res.status(200).json({ message: "Like agregado con éxito", publication });
+        res.status(200).json({ message: "Like added successfully", publication });
     } catch (error) {
-        console.error("Error al dar like:", error);
-        res.status(500).json({ message: "Error en el servidor" });
+        console.error("Error when liking:", error);
+        res.status(500).json({ message: "Server Error" });
     }
 };
 
@@ -420,7 +420,7 @@ const addComment = async (req, res) => {
         );
 
         if (!publication) {
-            return res.status(404).json({ message: "Publicación no encontrada" });
+            return res.status(404).json({ message: "Post not found" });
         }
 
         // Verificar si la publicación ha superado los 40 likes
@@ -431,7 +431,7 @@ const addComment = async (req, res) => {
             if (!existingSuggestion) {
                 // Validar campos de la publicación antes de crear la sugerencia
                 const suggestionData = {
-                    text: publication.text || "Texto no disponible", // Campo obligatorio
+                    text: publication.text || "Text not available", // Campo obligatorio
                     user: publication.user || null, // Asegurarse de que el autor esté presente
                     createdAt: publication.createdAt || Date.now(), // Fecha de creación
                     likes: publication.likes,
@@ -459,14 +459,14 @@ const addComment = async (req, res) => {
             );
 
             if (existingSuggestion) {
-                console.log("Sugerencia actualizada con nuevos comentarios:", existingSuggestion);
+                console.log("Updated suggestion with new comments:", existingSuggestion);
             }
         }
 
-        res.status(200).json({ message: "Comentario agregado con éxito", publication });
+        res.status(200).json({ message: "Comment added successfully", publication });
     } catch (error) {
-        console.error("Error al agregar el comentario:", error);
-        res.status(500).json({ message: "Error en el servidor" });
+        console.error("Error adding comment:", error);
+        res.status(500).json({ message: "Server Error" });
     }
 };
 

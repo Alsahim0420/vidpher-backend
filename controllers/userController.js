@@ -30,17 +30,16 @@ const prueba_user = (req, res) => {
     })
 };
 
-// Registro de usuarios
 const register = async (req, res) => {
     // Recoger datos de la petición
     const params = req.body;
     console.log(params);
 
     // Validación básica
-    if (!params.username || !params.password || !params.email || !params.role) {
+    if (!params.username || !params.password || !params.email || !params.role || !params.name) {
         return res.status(400).json({
             status: 'error',
-            message: 'There is still data to send',
+            message: 'There is still data to send. Please provide name, username, password, email, and role.',
         });
     }
 
@@ -49,8 +48,8 @@ const register = async (req, res) => {
         validate.validate(params);
 
         // Convertir email y username a minúsculas para consistencia
-        const emailLower = params.email;
-        const usernameLower = params.username;
+        const emailLower = params.email.toLowerCase();
+        const usernameLower = params.username.toLowerCase();
 
         // Verificar si el usuario o email ya existen
         const existingUser = await user.findOne({
@@ -72,13 +71,25 @@ const register = async (req, res) => {
         params.password = hashedPassword;
 
         // Crear y guardar el nuevo usuario
-        const user_obj = new user(params);
+        const user_obj = new user({
+            name: params.name,
+            username: usernameLower,
+            email: emailLower,
+            password: params.password,
+            role: params.role,
+        });
+
         const userStored = await user_obj.save();
 
+        // Generar token JWT para loguear al usuario
+        const token = jwt.createToken(userStored);
+
+        // Responder con el usuario registrado y el token
         return res.status(201).json({
             status: 'success',
-            message: 'Successfully registered user',
+            message: 'Successfully registered and logged in',
             user: userStored,
+            token, // Enviar el token al cliente
         });
     } catch (error) {
         // Manejar errores de validación
@@ -97,6 +108,8 @@ const register = async (req, res) => {
         });
     }
 };
+
+
 
 
 

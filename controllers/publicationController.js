@@ -404,34 +404,6 @@ const likePublication = async (req, res) => {
 
 
 
-// Método para quitar el like de una publicación
-const dislikePublication = async (req, res) => {
-    try {
-        const { publicationId } = req.params;
-
-        // Buscar la publicación
-        const publication = await Publication.findById(publicationId);
-
-        if (!publication) {
-            return res.status(404).json({ message: "Publicación no encontrada" });
-        }
-
-        // Verificar si el arreglo likedBy está definido, de lo contrario, inicializarlo
-        if (!publication.likedBy) {
-            publication.likedBy = [];
-        }
-
-        // Decrementar el contador de "likes" y eliminar el primer "like" encontrado
-        publication.likes = Math.max(publication.likes - 1, 0); // Evitar que los "likes" sean negativos
-        publication.likedBy.pop(); // Eliminar el último "like" dado
-        await publication.save();
-
-        res.status(200).json({ message: "Like eliminado con éxito", publication });
-    } catch (error) {
-        console.error("Error al eliminar el like:", error);
-        res.status(500).json({ message: "Error en el servidor" });
-    }
-};
 
 // Método para agregar un comentario a una publicación
 const addComment = async (req, res) => {

@@ -9,6 +9,7 @@ const secret = "VidpherCreadoEsteaño12345@";
 const createToken = (user)=>{
     const payload = {
         id: user._id,
+        name: user.name,
         username: user.username,
         email: user.email,
         rol: user.role,

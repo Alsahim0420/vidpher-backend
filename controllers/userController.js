@@ -130,7 +130,7 @@ const login = async (req, res) => {
         // Buscar el usuario en la base de datos
         const userFound = await user
             .findOne({ username: params.username })
-            .select('username email password role image');
+            .select('username email password role image name');
 
         // Si el usuario no existe
         if (!userFound) {

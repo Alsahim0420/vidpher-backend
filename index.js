@@ -25,12 +25,14 @@ const userRoutes = require('./routes/userRoutes');
 const followRoutes = require('./routes/followRoutes');
 const publicationRoutes = require('./routes/publicationRoutes');
 const storyRoutes = require('./routes/storyRoutes');
+const agendaRoutes = require('./routes/agendaRoutes');
 
 
 app.use('/api/user', userRoutes);
 app.use('/api/follow', followRoutes);
 app.use('/api/publication', publicationRoutes);
 app.use('/api/story', storyRoutes);
+app.use('/api/agenda', agendaRoutes);
 
 //ruta de prueba
 app.get("/ruta-prueba", (req, res) => {

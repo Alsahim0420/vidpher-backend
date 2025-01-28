@@ -96,8 +96,6 @@ const save = async (req, res) => {
     }
 };
 
-
-
 // Sacar una publicacion
 const detail = async (req, res) => {
     try {
@@ -219,86 +217,6 @@ const user = async (req, res) => {
             status: "error",
             message: "Error getting the user's posts",
             error: error.message,
-        });
-    }
-};
-
-
-const upload = async (req, res) => {
-    try {
-        // Obtener publicationId desde los parámetros
-        const publicationId = req.params.id;
-
-        console.log('Publication ID:', publicationId);
-        console.log('User ID:', req.user.id);
-
-
-        // Verificar si se envió un archivo
-        if (!req.file) {
-            return res.status(400).json({
-                status: "error",
-                message: "No file uploaded",
-            });
-        }
-
-        // Obtener el nombre del archivo y la extensión
-        const file = req.file.originalname;
-        const extension = file.split('.').pop().toLowerCase();
-
-        // Validar la extensión del archivo
-        if (!["jpg", "jpeg", "png", "gif"].includes(extension)) {
-            try {
-                await fs.unlinkSync(req.file.path); // Eliminar archivo
-            } catch (err) {
-                return res.status(500).json({
-                    status: "error",
-                    message: "Failed to delete invalid file",
-                    error: err,
-                });
-            }
-
-            return res.status(400).json({
-                status: "error",
-                message: "File extension is invalid",
-            });
-        }
-
-        // Subir archivo a Cloudinary
-        const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: 'publications', // Carpeta opcional en Cloudinary
-        });
-
-        // Eliminar archivo temporal
-        fs.unlinkSync(req.file.path);
-
-        // Actualizar la publicación con la URL de la imagen almacenada en Cloudinary
-        const publicationUpdated = await Publication.findOneAndUpdate(
-            { user: req.user.id, _id: publicationId }, // Filtro
-            { file: result.secure_url }, // Datos a actualizar
-            { new: true } // Devolver el documento actualizado
-        );
-
-        if (!publicationUpdated) {
-            return res.status(404).json({
-                status: "error",
-                message: "Publication not found to update image",
-            });
-        }
-
-        // Responder con éxito
-        return res.status(200).json({
-            status: "success",
-            message: "Successful Image Upload",
-            publication: publicationUpdated,
-            imageUrl: result.secure_url,
-        });
-
-    } catch (err) {
-        console.error(err);
-        return res.status(500).json({
-            status: "error",
-            message: "Internal Server Error",
-            error: err.message || err,
         });
     }
 };
@@ -525,7 +443,6 @@ module.exports = {
     detail,
     remove,
     user,
-    upload,
     media,
     feed,
     likePublication,

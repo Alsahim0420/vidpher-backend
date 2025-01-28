@@ -44,4 +44,6 @@ app.get("/ruta-prueba", (req, res) => {
 // Poner servidor a escuchar peticiones http 
 app.listen(puerto, () => {
     console.log(`Servidor corriendo en http://localhost:${puerto}`);
+    console.log('Iniciando tareas programadas...');
+    cronJobs;
 })

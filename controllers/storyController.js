@@ -11,7 +11,6 @@ const prueba_story = (req, res) => {
     })
 };
 
-
 const upload = async (req, res) => {
     try {
         console.log('User ID:', req.user.id);
@@ -20,7 +19,7 @@ const upload = async (req, res) => {
         if (!req.file) {
             return res.status(400).json({
                 status: "error",
-                message: "No se ha subido ningún archivo",
+                message: "No file uploaded",
             });
         }
 
@@ -35,14 +34,14 @@ const upload = async (req, res) => {
             } catch (err) {
                 return res.status(500).json({
                     status: "error",
-                    message: "Error al borrar el archivo no válido",
+                    message: "Failed to delete invalid file",
                     error: err,
                 });
             }
 
             return res.status(400).json({
                 status: "error",
-                message: "La extensión del archivo no es válida",
+                message: "File extension is invalid",
             });
         }
 
@@ -59,6 +58,7 @@ const upload = async (req, res) => {
             user: req.user.id,
             text: req.body.text || "", // Texto opcional en el cuerpo de la solicitud
             file: result.secure_url,
+            cloudinaryPublicId: result.public_id, // Guardar el ID público de Cloudinary
             expiresAt: Date.now() + 24 * 60 * 60 * 1000, // Expira en 24 horas
             suggested: req.body.suggested || false, // Opcional: sugerencia
         });
@@ -68,7 +68,7 @@ const upload = async (req, res) => {
         // Responder con éxito
         return res.status(200).json({
             status: "success",
-            message: "Nueva historia creada exitosamente",
+            message: "New story successfully created",
             story: newStory,
             imageUrl: result.secure_url,
         });
@@ -77,11 +77,12 @@ const upload = async (req, res) => {
         console.error(err);
         return res.status(500).json({
             status: "error",
-            message: "Error interno del servidor",
+            message: "Internal Server Error",
             error: err.message || err,
         });
     }
 };
+
 
 module.exports = {
     upload,

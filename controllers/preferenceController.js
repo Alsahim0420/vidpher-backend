@@ -43,6 +43,73 @@ const save = async (req, res) => {
     }
 };
 
+
+const PreferencesById = async (req, res) => {
+    try {
+        // Obtener el id del usuario desde el token (req.user.id)
+        const userId = req.user.id;
+
+        // Buscar las preferencias del usuario en la base de datos
+        const preferences = await Preferences.findOne({ user: userId }).populate('user', 'name email'); // Usamos populate para traer datos adicionales del usuario
+
+        // Validar si no se encuentran preferencias para el usuario
+        if (!preferences) {
+            return res.status(404).send({
+                status: 'error',
+                message: 'No se encontraron preferencias para el usuario proporcionado.'
+            });
+        }
+
+        // Enviar las preferencias como respuesta
+        return res.status(200).send({
+            status: 'success',
+            message: 'Preferencias obtenidas con éxito.',
+            preferences
+        });
+    } catch (err) {
+        // Manejo de errores
+        return res.status(500).send({
+            status: 'error',
+            message: 'Error al obtener las preferencias.',
+            error: err.message
+        });
+    }
+};
+
+
+const AllPreferences = async (req, res) => {
+    try {
+        // Buscar todas las preferencias en la base de datos
+        const preferences = await Preferences.find().populate('user', 'name email'); // Usamos populate para incluir datos del usuario
+
+        // Validar si no se encuentran preferencias en la base de datos
+        if (!preferences || preferences.length === 0) {
+            return res.status(404).send({
+                status: 'error',
+                message: 'No se encontraron preferencias en el sistema.'
+            });
+        }
+
+        // Enviar las preferencias como respuesta
+        return res.status(200).send({
+            status: 'success',
+            message: 'Preferencias obtenidas con éxito.',
+            preferences
+        });
+    } catch (err) {
+        // Manejo de errores
+        return res.status(500).send({
+            status: 'error',
+            message: 'Error al obtener las preferencias.',
+            error: err.message
+        });
+    }
+};
+
+
+
 module.exports = {
-    save
+    save,
+    PreferencesById,
+    AllPreferences
 };

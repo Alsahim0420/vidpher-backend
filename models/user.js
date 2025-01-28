@@ -19,7 +19,7 @@ const UserSchema = new Schema({
         required: true
     },
     role: {
-        type: int,
+        type: Number,
         required: true
     },
     image:{

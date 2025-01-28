@@ -19,7 +19,6 @@ router.get("/media", publicationController.media);
 router.get("/feed/:page?", check.auth, publicationController.feed);
 router.post("/:publicationId/like", check.auth, publicationController.likePublication);
 router.post("/:publicationId/comment", check.auth, publicationController.addComment);
-router.delete("/:publicationId/dislikePublication", check.auth, publicationController.dislikePublication);
 
 // Exportar el módulo de rutas
 module.exports = router;

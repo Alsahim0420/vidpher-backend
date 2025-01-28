@@ -486,6 +486,5 @@ module.exports = {
     media,
     feed,
     likePublication,
-    addComment,
-    dislikePublication
+    addComment
 };

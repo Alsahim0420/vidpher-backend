@@ -2,6 +2,7 @@
 const connection = require('./database/connection');
 const express = require('express');
 const cors = require('cors');
+const cronJobs = require('./cronJobs');
 
 //Mensaje de Bienvenioda
 console.log("Bienvenido a Vidpher API");

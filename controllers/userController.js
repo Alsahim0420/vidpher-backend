@@ -48,8 +48,8 @@ const register = async (req, res) => {
         validate.validate(params);
 
         // Convertir email y username a minúsculas para consistencia
-        const emailLower = params.email.toLowerCase();
-        const usernameLower = params.username.toLowerCase();
+        const emailLower = params.email;
+        const usernameLower = params.username;
 
         // Verificar si el usuario o email ya existen
         const existingUser = await user.findOne({

@@ -1,4 +1,4 @@
-const Agenda = require('../models/Agenda');
+const Agenda = require('../models/agenda');
 
 
 // Controlador para crear un dato en la agenda

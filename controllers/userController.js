@@ -536,6 +536,54 @@ const resetPassword = async (req, res) => {
 };
 
 
+// Dashboard endpoint 
+
+const countUsersByRole = async (req, res) => {
+    try {
+        // Agregación para contar usuarios por rol
+        const usersByRole = await User.aggregate([
+            {
+                $group: {
+                    _id: "$role", // Agrupar por el campo "role"
+                    count: { $sum: 1 } // Contar cuántos usuarios hay en cada grupo
+                }
+            },
+            {
+                $sort: { _id: 1 } // Ordenar los resultados por rol (ascendente)
+            }
+        ]);
+
+        // Si no hay usuarios
+        if (!usersByRole || usersByRole.length === 0) {
+            return res.status(404).json({
+                status: 'error',
+                message: 'No users found'
+            });
+        }
+
+        // Formatear la respuesta para que sea más clara
+        const result = usersByRole.map(roleGroup => ({
+            role: roleGroup._id,
+            count: roleGroup.count
+        }));
+
+        // Responder con el resultado
+        return res.status(200).json({
+            status: 'success',
+            message: 'Users counted by role',
+            data: result
+        });
+    } catch (error) {
+        // Manejo de errores
+        console.error("Error counting users by role:", error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Server Error',
+            error: error.message
+        });
+    }
+};
+
 
 
 //Expoortar las acciones
@@ -552,4 +600,5 @@ module.exports = {
     requestPasswordReset,
     resetPassword,
     updateAvatar,
+    countUsersByRole
 };

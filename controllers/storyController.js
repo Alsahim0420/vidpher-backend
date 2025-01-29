@@ -83,8 +83,99 @@ const upload = async (req, res) => {
     }
 };
 
+const myStories = async (req, res) => {
+    try {
+        // Obtener el ID del usuario logueado
+        const userId = req.user.id;
+
+        // Consultar las historias creadas por el usuario
+        const stories = await Story.find({ user: userId })
+            .sort({ createdAt: -1 }) // Ordenar por fecha de creación (descendente)
+            .select("-cloudinaryPublicId"); // Opcional: excluir campos sensibles como `cloudinaryPublicId`
+
+        // Verificar si el usuario tiene historias
+        if (stories.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No stories found for this user",
+            });
+        }
+
+        // Responder con éxito y devolver las historias
+        return res.status(200).json({
+            status: "success",
+            message: "Stories retrieved successfully",
+            stories,
+        });
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({
+            status: "error",
+            message: "Internal Server Error",
+            error: err.message || err,
+        });
+    }
+};
+
+
+const followedStories = async (req, res) => {
+    try {
+        // Obtener el ID del usuario logueado
+        const userId = req.user.id;
+
+        // Consultar los usuarios que sigue el usuario logueado
+        const follows = await Follow.find({ user: userId }).select("followed").lean();
+
+        // Extraer los IDs de los usuarios seguidos
+        const followedUserIds = follows.map(follow => follow.followed);
+
+        // Si no sigue a nadie, devolver un mensaje
+        if (followedUserIds.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "You are not following anyone, so no stories are available",
+            });
+        }
+
+        // Consultar historias de los usuarios seguidos
+        const stories = await Story.find({ user: { $in: followedUserIds } })
+            .sort({ createdAt: -1 }) // Ordenar por fecha de creación (descendente)
+            .select("-cloudinaryPublicId") // Opcional: excluir campos sensibles
+            .populate("user", "username avatar") // Traer datos del usuario (nombre/avatar)
+            .lean();
+
+        // Si no hay historias, devolver un mensaje
+        if (stories.length === 0) {
+            return res.status(404).json({
+                status: "error",
+                message: "No stories found from the users you follow",
+            });
+        }
+
+        // Responder con las historias encontradas
+        return res.status(200).json({
+            status: "success",
+            message: "Stories from followed users retrieved successfully",
+            stories,
+        });
+
+    } catch (err) {
+        console.error(err);
+        return res.status(500).json({
+            status: "error",
+            message: "Internal Server Error",
+            error: err.message || err,
+        });
+    }
+};
+
+
+
 
 module.exports = {
     upload,
-    prueba_story
+    prueba_story,
+    myStories,
+    followedStories
 };

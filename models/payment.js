@@ -2,7 +2,7 @@ const {Schema,model} = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
 
 
-const PaymentSchema = new mongoose.Schema({
+const PaymentSchema = Schema({
     userId: 
     { 
         type: mongoose.Schema.Types.ObjectId, 

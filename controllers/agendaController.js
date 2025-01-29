@@ -57,7 +57,64 @@ const save = async (req, res) => {
     }
 };
 
+// Controlador para obtener todas las reuniones agendadas por fecha
+const byDate = async (req, res) => {
+    try {
+        // Obtener el id del usuario desde el token
+        const userId = req.user.id;
+
+        // Consultar las reuniones agendadas del usuario y agruparlas por fecha
+        const agendaByDate = await Agenda.aggregate([
+            {
+                $match: { user: userId } // Filtrar por el usuario
+            },
+            {
+                $group: {
+                    _id: "$date", // Agrupar por el campo "date"
+                    meetings: {
+                        $push: {
+                            title: "$title",
+                            location: "$location",
+                            duration: "$duration",
+                            time: "$time",
+                            createdAt: "$createdAt" // Agregar campos necesarios
+                        }
+                    }
+                }
+            },
+            {
+                $sort: { _id: 1 } // Ordenar por fecha ascendente
+            }
+        ]);
+
+        // Validar si el usuario no tiene reuniones agendadas
+        if (agendaByDate.length === 0) {
+            return res.status(404).send({
+                status: 'error',
+                message: 'No meetings found for the user.'
+            });
+        }
+
+        // Respuesta de éxito con las reuniones agrupadas por fecha
+        return res.status(200).send({
+            status: 'success',
+            message: 'Meetings retrieved successfully.',
+            agenda: agendaByDate
+        });
+
+    } catch (err) {
+        // Manejo de errores
+        return res.status(500).send({
+            status: 'error',
+            message: 'Error while retrieving meetings.',
+            error: err.message
+        });
+    }
+};
+
+
 
 module.exports = {
-    save
+    save,
+    byDate
 };

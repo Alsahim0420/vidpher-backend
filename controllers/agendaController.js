@@ -57,49 +57,41 @@ const save = async (req, res) => {
     }
 };
 
+
+
 // Controlador para obtener todas las reuniones agendadas por fecha
 const byDate = async (req, res) => {
     try {
         // Obtener el id del usuario desde el token
         const userId = req.user.id;
 
-        // Consultar las reuniones agendadas del usuario y agruparlas por fecha
-        const agendaByDate = await Agenda.aggregate([
-            {
-                $match: { user: userId } // Filtrar por el usuario
-            },
-            {
-                $group: {
-                    _id: "$date", // Agrupar por el campo "date"
-                    meetings: {
-                        $push: {
-                            title: "$title",
-                            location: "$location",
-                            duration: "$duration",
-                            time: "$time",
-                            createdAt: "$createdAt" // Agregar campos necesarios
-                        }
-                    }
-                }
-            },
-            {
-                $sort: { _id: 1 } // Ordenar por fecha ascendente
-            }
-        ]);
+        // Obtener la fecha desde los parámetros de la solicitud
+        const { date } = req.params;
 
-        // Validar si el usuario no tiene reuniones agendadas
-        if (agendaByDate.length === 0) {
-            return res.status(404).send({
+        // Validar que se haya proporcionado una fecha
+        if (!date) {
+            return res.status(400).send({
                 status: 'error',
-                message: 'No meetings found for the user.'
+                message: 'A date parameter is required.'
             });
         }
 
-        // Respuesta de éxito con las reuniones agrupadas por fecha
+        // Buscar todas las reuniones agendadas en la fecha especificada
+        const meetings = await Agenda.find({ user: userId, date });
+
+        // Validar si no hay reuniones en la fecha indicada
+        if (meetings.length === 0) {
+            return res.status(404).send({
+                status: 'error',
+                message: `No meetings found for the date: ${date}`
+            });
+        }
+
+        // Respuesta con todas las reuniones de la fecha dada
         return res.status(200).send({
             status: 'success',
             message: 'Meetings retrieved successfully.',
-            agenda: agendaByDate
+            agenda: meetings
         });
 
     } catch (err) {

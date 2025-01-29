@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const {Schema,model} = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
 
 
@@ -38,4 +38,4 @@ const PaymentSchema = new mongoose.Schema({
 
 PaymentSchema.plugin(mongoosePaginate);
 
-module.exports = model('Follow', PaymentSchema, 'follows');
+module.exports = model('Payment', PaymentSchema, 'payments');

@@ -541,7 +541,7 @@ const resetPassword = async (req, res) => {
 const countUsersByRole = async (req, res) => {
     try {
         // Agregación para contar usuarios por rol
-        const usersByRole = await User.aggregate([
+        const usersByRole = await user.aggregate([
             {
                 $group: {
                     _id: "$role", // Agrupar por el campo "role"

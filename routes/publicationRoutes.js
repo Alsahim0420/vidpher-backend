@@ -12,6 +12,7 @@ const uploads = multer({ dest: 'temp/' });
 router.get("/prueba_publication", publicationController.prueba_publication);
 router.post("/save", [check.auth, uploads.single("file0")], publicationController.save);
 router.get("/detail/:id", check.auth, publicationController.detail);
+router.get("/allPublications", check.auth, publicationController.allPublications);
 router.delete("/remove/:id", check.auth, publicationController.remove);
 router.get("/user/:id/:page?", check.auth, publicationController.user);
 router.get("/media", publicationController.media);

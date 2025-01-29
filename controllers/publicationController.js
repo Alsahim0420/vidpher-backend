@@ -433,7 +433,37 @@ const addComment = async (req, res) => {
 
 
 
-module.exports = { addComment };
+//Dashboard endpoint
+
+// Obtener todas las publicaciones
+const allPublications = async (req, res) => {
+    try {
+        // Buscar todas las historias en la base de datos
+        const publications = await Publication.find();
+
+        // Comprobar si hay historias
+        if (!publications || publications.length === 0) {
+            return res.status(404).send({
+                error: "error",
+                message: "No stories found",
+            });
+        }
+
+        // Devolver respuesta con las historias
+        return res.status(200).json({
+            status: "success",
+            message: "List of all stories",
+            stories: publications,
+        });
+    } catch (error) {
+        // Manejar errores
+        return res.status(500).send({
+            error: "error",
+            message: "Failed to retrieve stories",
+        });
+    }
+};
+
 
 
 //Expoortar las acciones
@@ -446,5 +476,6 @@ module.exports = {
     media,
     feed,
     likePublication,
-    addComment
+    addComment,
+    allPublications
 };

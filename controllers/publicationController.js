@@ -468,13 +468,12 @@ const allPublications = async (req, res) => {
 const toggleWatchPublication = async (req, res) => {
     try {
         const { publicationId } = req.params; // ID de la publicación
-        const userId = req.user.id; // ID del usuario logueado
 
-        // Buscar la publicación por ID y verificar que pertenezca al usuario
-        const publication = await Publication.findOne({ _id: publicationId, user: userId });
+        // Buscar la publicación por ID
+        const publication = await Publication.findById(publicationId);
 
         if (!publication) {
-            return res.status(404).json({ message: "Publication not found or you don't have permission to modify it" });
+            return res.status(404).json({ message: "Publication not found" });
         }
 
         // Alternar el valor de watchPublication

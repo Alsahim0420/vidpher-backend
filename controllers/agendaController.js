@@ -1,6 +1,5 @@
 const Agenda = require('../models/agenda');
 
-
 // Controlador para crear un dato en la agenda
 const save = async (req, res) => {
     try {
@@ -27,12 +26,39 @@ const save = async (req, res) => {
             });
         }
 
+        // Convertir el tiempo en minutos para validaciones más precisas
+        const [hours, minutes] = time.split(':').map(Number);
+        const newStartTime = hours * 60 + minutes; // Hora de inicio en minutos
+        const newEndTime = newStartTime + durationInHours * 60; // Hora de finalización en minutos
+
+        // Buscar reuniones que ya existan en la misma fecha y usuario
+        const existingMeetings = await Agenda.find({ user: userId, date });
+
+        // Verificar si hay conflicto de horarios
+        for (const meeting of existingMeetings) {
+            const [existingHours, existingMinutes] = meeting.time.split(':').map(Number);
+            const existingStartTime = existingHours * 60 + existingMinutes;
+            const existingEndTime = existingStartTime + meeting.duration * 60;
+
+            // Si hay solapamiento, retornar error
+            if (
+                (newStartTime >= existingStartTime && newStartTime < existingEndTime) || // Comienza dentro de otra reunión
+                (newEndTime > existingStartTime && newEndTime <= existingEndTime) || // Termina dentro de otra reunión
+                (newStartTime <= existingStartTime && newEndTime >= existingEndTime) // Contiene a otra reunión
+            ) {
+                return res.status(400).send({
+                    status: 'error',
+                    message: 'Schedule conflict: You already have a meeting at this time.'
+                });
+            }
+        }
+
         // Crear un nuevo registro en la agenda
         const newAgendaEntry = new Agenda({
             user: userId,
             location,
             title,
-            duration: durationInHours,  // Guardar la duración como número
+            duration: durationInHours, // Guardar la duración como número
             time,
             date
         });
@@ -56,6 +82,7 @@ const save = async (req, res) => {
         });
     }
 };
+
 
 
 

@@ -21,7 +21,7 @@ router.post("/:publicationId/comment", check.auth, publicationController.addComm
 
 //Dashboard
 router.get("/allPublications", check.auth, publicationController.allPublications);
-router.put('/publications/:publicationId/toggle/watch', authMiddleware, toggleWatchPublication);
+router.put('/publications/:publicationId/toggle/watch', check.auth, publicationController.toggleWatchPublication);
 
 // Exportar el módulo de rutas
 module.exports = router;

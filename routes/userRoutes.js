@@ -35,7 +35,7 @@ router.post('/request/password/reset', userController.requestPasswordReset);
 router.post('/reset/password', userController.resetPassword);
 
 //Dashboard
-router.get('/users/count-by-role', check.auth, userController.countUsersByRole);
+router.get('/users/count/by/role', check.auth, userController.countUsersByRole);
 
 // Exportar el módulo de rutas
 module.exports = router;

@@ -465,6 +465,33 @@ const allPublications = async (req, res) => {
 };
 
 
+const toggleWatchPublication = async (req, res) => {
+    try {
+        const { publicationId } = req.params; // ID de la publicación
+        const userId = req.user.id; // ID del usuario logueado
+
+        // Buscar la publicación por ID y verificar que pertenezca al usuario
+        const publication = await Publication.findOne({ _id: publicationId, user: userId });
+
+        if (!publication) {
+            return res.status(404).json({ message: "Publication not found or you don't have permission to modify it" });
+        }
+
+        // Alternar el valor de watchPublication
+        publication.watchPublication = !publication.watchPublication; // Invierte el valor actual
+        await publication.save();
+
+        res.status(200).json({ 
+            message: `watchPublication updated to ${publication.watchPublication}`, 
+            publication 
+        });
+    } catch (error) {
+        console.error("Error toggling watchPublication:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
+
 
 //Expoortar las acciones
 module.exports = {
@@ -477,5 +504,6 @@ module.exports = {
     feed,
     likePublication,
     addComment,
-    allPublications
+    allPublications,
+    toggleWatchPublication
 };

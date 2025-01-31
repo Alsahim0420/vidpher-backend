@@ -5,4 +5,4 @@ const check = require("../middlewares/auth");
 
 
 
-router.post("/save-publication", check.auth, savedPublicationController.toggleSavePublication);
+router.post("/save/publication", check.auth, savedPublicationController.toggleSavePublication);

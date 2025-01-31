@@ -3,7 +3,7 @@ const Publication = require("../models/publication");
 
 const toggleSavePublication = async (req, res) => {
     const { publicationId } = req.body;
-    const userId = req.user._id;
+    const userId = req.user.id;
 
     console.log("userId:", userId); // Depuración: Verifica que userId no sea undefined
     console.log("publicationId:", publicationId); // Depuración: Verifica que publicationId no sea undefined

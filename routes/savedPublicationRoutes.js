@@ -6,3 +6,5 @@ const check = require("../middlewares/auth");
 
 
 router.post("/save/publication", check.auth, savedPublicationController.toggleSavePublication);
+
+module.exports = router;

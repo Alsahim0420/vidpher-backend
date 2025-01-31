@@ -31,6 +31,7 @@ const storyRoutes = require('./routes/storyRoutes');
 const agendaRoutes = require('./routes/agendaRoutes');
 const preferenceRoutes = require('./routes/preferenceRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
+const savedPublicationRoutes = require('./routes/savedPublicationRoutes');
 
 
 app.use('/api/user', userRoutes);
@@ -40,6 +41,7 @@ app.use('/api/story', storyRoutes);
 app.use('/api/agenda', agendaRoutes);
 app.use('/api/preference', preferenceRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/payment', savedPublicationRoutes);
 
 //ruta de prueba
 app.get("/ruta-prueba", (req, res) => {

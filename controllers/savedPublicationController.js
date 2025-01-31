@@ -1,4 +1,5 @@
 const SavedPublication = require("../models/savedPublication");
+const Publication = require("../models/publication");
 
 const toggleSavePublication = async (req, res) => {
     const { publicationId } = req.body;

@@ -41,7 +41,7 @@ app.use('/api/story', storyRoutes);
 app.use('/api/agenda', agendaRoutes);
 app.use('/api/preference', preferenceRoutes);
 app.use('/api/payment', paymentRoutes);
-app.use('/api/payment', savedPublicationRoutes);
+app.use('/api/savedPublicationRoutes', savedPublicationRoutes);
 
 //ruta de prueba
 app.get("/ruta-prueba", (req, res) => {

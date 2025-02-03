@@ -325,23 +325,20 @@ const likePublication = async (req, res) => {
         console.log("Likes después de la acción:", publication.likes);
 
         // Verificar si la publicación llegó a 40 likes
-        if (publication.likes >= 40 && !publication.suggested) {
+        if (publication.likes >= 0 && !publication.suggested) {
             console.log("The post has reached 40 likes and has not yet been suggested.");
 
             // Comprobar si la publicación ya está en la colección "Suggestion"
-            const existingSuggestion = await Suggestion.findOne({ originalPublicationId: publication._id });
+            const existingSuggestion = await Suggestion.findOne({ publication: publication._id });
 
             if (!existingSuggestion) {
                 console.log("An existing suggestion was not found, creating a new one.");
 
-                // Validar campos de la publicación antes de crear la sugerencia
+                // Crear la sugerencia con solo los campos necesarios
                 const suggestionData = {
-                    text: publication.text || "Text not available", // Campo obligatorio
-                    user: publication.user || null, // Asegurarse de que el autor esté presente
-                    createdAt: publication.createdAt || Date.now(), // Fecha de creación
-                    likes: publication.likes,
-                    originalPublicationId: publication._id,
-                    // Agregar otros campos relevantes
+                    user: publication.user, // ID del usuario que creó la publicación
+                    publication: publication._id, // ID de la publicación
+                    createdAt: Date.now() // Fecha de creación
                 };
 
                 // Crear la sugerencia
@@ -356,15 +353,8 @@ const likePublication = async (req, res) => {
                 console.log("Suggestion created and post marked as suggested.");
             }
         } else if (publication.likes >= 40) {
-            // Si la sugerencia ya existe, actualiza los datos (likes)
-            const existingSuggestion = await Suggestion.findOne({ originalPublicationId: publication._id });
-
-            if (existingSuggestion) {
-                // Actualizar los likes de la sugerencia con los de la publicación
-                existingSuggestion.likes = publication.likes;
-                await existingSuggestion.save();
-                console.log("Updated suggestion with new likes:", existingSuggestion);
-            }
+            // Si la sugerencia ya existe, no es necesario hacer nada adicional
+            console.log("The post already has a suggestion.");
         }
 
         res.status(200).json({ message: "Like toggled successfully", publication });

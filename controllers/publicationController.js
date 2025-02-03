@@ -297,19 +297,32 @@ const feed = async (req, res) => {
 const likePublication = async (req, res) => {
     try {
         const { publicationId } = req.params;
+        const userId = req.user._id; // Asumiendo que el ID del usuario está en el token
 
-        // Buscar la publicación y aumentar el contador de "likes"
-        const publication = await Publication.findByIdAndUpdate(
-            publicationId,
-            { $inc: { likes: 1 } }, // Incrementar el contador
-            { new: true } // Retornar el documento actualizado
-        );
+        // Buscar la publicación
+        const publication = await Publication.findById(publicationId);
 
         if (!publication) {
             return res.status(404).json({ message: "Post not found" });
         }
 
-        console.log("Likes después de incrementar:", publication.likes);
+        // Verificar si el usuario ya dio like
+        const userIndex = publication.likedBy.indexOf(userId);
+
+        if (userIndex === -1) {
+            // Si el usuario no ha dado like, agregarlo a la lista
+            publication.likedBy.push(userId);
+            publication.likes += 1; // Incrementar el contador de likes
+        } else {
+            // Si el usuario ya dio like, eliminarlo de la lista
+            publication.likedBy.splice(userIndex, 1);
+            publication.likes -= 1; // Decrementar el contador de likes
+        }
+
+        // Guardar la publicación actualizada
+        await publication.save();
+
+        console.log("Likes después de la acción:", publication.likes);
 
         // Verificar si la publicación llegó a 40 likes
         if (publication.likes >= 40 && !publication.suggested) {
@@ -354,7 +367,7 @@ const likePublication = async (req, res) => {
             }
         }
 
-        res.status(200).json({ message: "Like added successfully", publication });
+        res.status(200).json({ message: "Like toggled successfully", publication });
     } catch (error) {
         console.error("Error when liking:", error);
         res.status(500).json({ message: "Server Error" });

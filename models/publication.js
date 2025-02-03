@@ -2,6 +2,7 @@ const { Schema, model } = require("mongoose");
 const mongoose = require("mongoose");
 const mongoosePaginate = require("mongoose-paginate-v2");
 
+
 const PublicationSchema = Schema({
     user: {
         type: Schema.ObjectId,
@@ -24,8 +25,12 @@ const PublicationSchema = Schema({
         type: Number,
         default: 0
     },
+    likedBy: [{  // Lista de usuarios que han dado like
+        type: Schema.ObjectId,
+        ref: "User"
+    }],
     comments: Array,
-    suggested: { // Campo que indica si ya se ha creado una sugerencia
+    suggested: {
         type: Boolean,
         default: false
     }

@@ -325,7 +325,7 @@ const likePublication = async (req, res) => {
         console.log("Likes después de la acción:", publication.likes);
 
         // Verificar si la publicación llegó a 40 likes
-        if (publication.likes >= 0 && !publication.suggested) {
+        if (publication.likes >= 40 && !publication.suggested) {
             console.log("The post has reached 40 likes and has not yet been suggested.");
 
             // Comprobar si la publicación ya está en la colección "Suggestion"

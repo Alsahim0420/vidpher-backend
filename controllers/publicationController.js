@@ -297,7 +297,7 @@ const feed = async (req, res) => {
 const likePublication = async (req, res) => {
     try {
         const { publicationId } = req.params;
-        const userId = req.user._id; // Asumiendo que el ID del usuario está en el token
+        const userId = req.user.id; // Asumiendo que el ID del usuario está en el token
 
         // Buscar la publicación
         const publication = await Publication.findById(publicationId);

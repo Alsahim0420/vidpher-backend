@@ -36,5 +36,34 @@ const toggleSavePublication = async (req, res) => {
     }
 };
 
+const getSavedPublications = async (req, res) => {
+    const userId = req.user.id; // Obtén el ID del usuario logueado
+
+    try {
+        // 1. Busca las publicaciones guardadas por el usuario
+        const savedPublications = await SavedPublication.find({ user: userId });
+
+        // Si no hay publicaciones guardadas, devuelve un mensaje
+        if (savedPublications.length === 0) {
+            return res.status(200).json({ message: "No saved publications found." });
+        }
+
+        // 2. Extrae los IDs de las publicaciones guardadas
+        const publicationIds = savedPublications.map(sp => sp.publication);
+
+        // 3. Busca los detalles de las publicaciones guardadas
+        const publications = await Publication.find({ _id: { $in: publicationIds } });
+
+        // 4. Devuelve las publicaciones encontradas
+        return res.status(200).json({ publications });
+    } catch (error) {
+        console.error("Error en getSavedPublications:", error);
+        return res.status(500).json({ message: "Error fetching saved publications." });
+    }
+};
+
 // Exportamos la función
-module.exports = { toggleSavePublication };
+module.exports = { 
+    toggleSavePublication,
+    getSavedPublications
+ };

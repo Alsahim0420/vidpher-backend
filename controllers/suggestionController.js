@@ -1,16 +1,23 @@
-const Suggestion = require("../models/suggestions");
+const Suggestion = require("../models/suggestions"); 
 const Publication = require("../models/publication");
 
 const getSuggestions = async (req, res) => {
-    const userId = req.user.id; // Obtén el ID del usuario autenticado
-
     try {
-        // Busca todas las sugerencias para el usuario
-        const suggestions = await Suggestion.find({ user: userId }).populate('publication');
+       
+        const suggestions = await Suggestion.find();
 
-        // Extrae las publicaciones sugeridas
-        const suggestedPublications = suggestions.map(suggestion => suggestion.publication);
+      
+        if (suggestions.length === 0) {
+            return res.status(200).json({ message: "No suggestions found." });
+        }
 
+
+        const publicationIds = suggestions.map(suggestion => suggestion.publication);
+
+
+        const suggestedPublications = await Publication.find({ _id: { $in: publicationIds } });
+
+   
         return res.status(200).json({ suggestedPublications });
     } catch (error) {
         console.error("Error en getSuggestions:", error);

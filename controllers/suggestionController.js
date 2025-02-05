@@ -1,4 +1,4 @@
-const Suggestion = require("../models/suggestion");
+const Suggestion = require("../models/suggestions");
 const Publication = require("../models/publication");
 
 const getSuggestions = async (req, res) => {

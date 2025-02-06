@@ -560,6 +560,7 @@ const feedPublication = async (req, res) => {
                 select: "-password -role -__v -email",
             },
         };
+        const likedPublicationIds = likedPublications.map(pub => pub._id);
         const followedPublications = await Publication.paginate(
             { user: { $in: myFollows.following } },
             options
@@ -586,6 +587,7 @@ const feedPublication = async (req, res) => {
         return res.status(200).json({
             status: "success",
             message: "List of posts in the feed",
+            likedPublications: likedPublicationIds,
             total: allPublications.length,
             page,
             pages: Math.ceil(allPublications.length / itemsPerPage),

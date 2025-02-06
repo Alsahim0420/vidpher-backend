@@ -502,10 +502,11 @@ const feedLike = async (req, res) => {
     const itemsPerPage = 10;
 
     try {
-        // Obtener el ID del usuario logueado
-        const userId = req.user.id;
+        // Obtener las publicaciones que el usuario logueado ha dado like
+        const likedPublications = await Publication.find({ likedBy: req.user.id }).select("_id");
+        const likedPublicationIds = likedPublications.map(pub => pub._id);
 
-        // Opciones de paginación
+        // Buscar publicaciones con paginación
         const options = {
             page,
             limit: itemsPerPage,
@@ -516,16 +517,16 @@ const feedLike = async (req, res) => {
             },
         };
 
-        // Buscar publicaciones a las que el usuario ha dado like
         const publications = await Publication.paginate(
-            { likedBy: userId }, // Filtrar por publicaciones que el usuario ha dado like
+            { _id: { $in: likedPublicationIds } }, // Filtrar por publicaciones que el usuario ha dado like
             options
         );
 
         // Responder con los datos
         return res.status(200).json({
             status: "success",
-            message: "List of posts liked by the user",
+            message: "List of liked posts in the feed",
+            likedPublications: likedPublicationIds, // Lista de IDs de publicaciones con like
             total: publications.totalDocs,
             page: publications.page,
             pages: publications.totalPages,
@@ -534,11 +535,12 @@ const feedLike = async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             status: "error",
-            message: "Failed to fetch liked posts",
+            message: "Liked posts not listed",
             error: error.message,
         });
     }
 };
+
 
 
 

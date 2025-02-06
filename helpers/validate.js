@@ -24,7 +24,7 @@ const validate = (params) => {
 
 
     let password = !validator.isEmpty(params.password) &&
-        validator.isLength(params.password, { min: 8, max: 16 }) &&
+        validator.isLength(params.password, { min: 8, max: 100 }) &&
         /[!@#$%^&*(),.?":{}|<>]/.test(params.password);
 
 

@@ -258,7 +258,11 @@ const feed = async (req, res) => {
         // Obtener los usuarios que sigue el usuario actual
         const myFollows = await followService.followUserIds(req.user.id);
 
-        // Buscar publicaciones con paginación
+        // Obtener publicaciones a las que el usuario ha dado like
+        const likedPublications = await Publication.find({ likedBy: req.user.id }).select('_id');
+        const likedPublicationIds = likedPublications.map(pub => pub._id);
+
+        // Configurar opciones de paginación
         const options = {
             page,
             limit: itemsPerPage,
@@ -269,6 +273,7 @@ const feed = async (req, res) => {
             },
         };
 
+        // Buscar publicaciones de los usuarios seguidos con paginación
         const publications = await Publication.paginate(
             { user: { $in: myFollows.following } }, // Filtrar por usuarios seguidos
             options
@@ -278,7 +283,7 @@ const feed = async (req, res) => {
         return res.status(200).json({
             status: "success",
             message: "List of posts in the feed",
-            myFollows: myFollows.following,
+            likedPublications: likedPublicationIds, // Lista de publicaciones con like
             total: publications.totalDocs,
             page: publications.page,
             pages: publications.totalPages,
@@ -494,106 +499,6 @@ const toggleWatchPublication = async (req, res) => {
 };
 
 
-const feedLike = async (req, res) => {
-    // Página actual
-    let page = parseInt(req.params.page) || 1;
-
-    // Número de elementos por página
-    const itemsPerPage = 10;
-
-    try {
-        // Obtener las publicaciones que el usuario logueado ha dado like
-        const likedPublications = await Publication.find({ likedBy: req.user.id }).select("_id");
-        const likedPublicationIds = likedPublications.map(pub => pub._id);
-
-        // Buscar publicaciones con paginación
-        const options = {
-            page,
-            limit: itemsPerPage,
-            sort: { createdAt: -1 }, // Ordenar por fecha de creación descendente
-            populate: {
-                path: "user",
-                select: "-password -role -__v -email", // Excluir campos sensibles
-            },
-        };
-
-        const publications = await Publication.paginate(
-            { _id: { $in: likedPublicationIds } }, // Filtrar por publicaciones que el usuario ha dado like
-            options
-        );
-
-        // Responder con los datos
-        return res.status(200).json({
-            status: "success",
-            message: "List of liked posts in the feed",
-            likedPublications: likedPublicationIds, // Lista de IDs de publicaciones con like
-            total: publications.totalDocs,
-            page: publications.page,
-            pages: publications.totalPages,
-            publications: publications.docs, // Publicaciones
-        });
-    } catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Liked posts not listed",
-            error: error.message,
-        });
-    }
-};
-
-
-const feedPublication = async (req, res) => {
-    // Página actual
-    let page = parseInt(req.params.page) || 1;
-
-    // Número de elementos por página
-    const itemsPerPage = 10;
-
-    try {
-        // Obtener los usuarios que sigue el usuario actual
-        const myFollows = await followService.followUserIds(req.user.id);
-
-        // Obtener publicaciones a las que el usuario ha dado like
-        const likedPublications = await Publication.find({ likedBy: req.user.id }).select('_id');
-        const likedPublicationIds = likedPublications.map(pub => pub._id);
-
-        // Configurar opciones de paginación
-        const options = {
-            page,
-            limit: itemsPerPage,
-            sort: { createdAt: -1 }, // Ordenar por fecha de creación descendente
-            populate: {
-                path: "user",
-                select: "-password -role -__v -email", // Excluir campos sensibles
-            },
-        };
-
-        // Buscar publicaciones de los usuarios seguidos con paginación
-        const publications = await Publication.paginate(
-            { user: { $in: myFollows.following } }, // Filtrar por usuarios seguidos
-            options
-        );
-
-        // Responder con los datos
-        return res.status(200).json({
-            status: "success",
-            message: "List of posts in the feed",
-            likedPublications: likedPublicationIds, // Lista de publicaciones con like
-            total: publications.totalDocs,
-            page: publications.page,
-            pages: publications.totalPages,
-            publications: publications.docs, // Publicaciones
-        });
-    } catch (error) {
-        return res.status(500).json({
-            status: "error",
-            message: "Feed posts not listed",
-            error: error.message,
-        });
-    }
-};
-
-
 
 
 
@@ -610,6 +515,4 @@ module.exports = {
     addComment,
     allPublications,
     toggleWatchPublication,
-    feedLike,
-    feedPublication
 };

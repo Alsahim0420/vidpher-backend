@@ -542,6 +542,66 @@ const feedLike = async (req, res) => {
 };
 
 
+const feedPublication = async (req, res) => {
+    let page = parseInt(req.params.page) || 1;
+    const itemsPerPage = 10;
+
+    try {
+        // Obtener usuarios seguidos
+        const myFollows = await followService.followUserIds(req.user.id);
+
+        // Obtener publicaciones de usuarios seguidos
+        const options = {
+            page,
+            limit: itemsPerPage,
+            sort: { createdAt: -1 },
+            populate: {
+                path: "user",
+                select: "-password -role -__v -email",
+            },
+        };
+        const followedPublications = await Publication.paginate(
+            { user: { $in: myFollows.following } },
+            options
+        );
+
+        // Obtener publicaciones que el usuario ha dado "like"
+        const likedPublications = await Publication.find({
+            likedBy: req.user.id,
+        })
+            .populate("user", "-password -role -__v -email")
+            .sort({ createdAt: -1 });
+
+        // Unir ambas listas sin duplicados
+        const allPublications = [
+            ...new Map(
+                [...likedPublications, ...followedPublications.docs].map((p) => [
+                    p._id.toString(),
+                    p,
+                ])
+            ).values(),
+        ];
+
+        // Responder con los datos
+        return res.status(200).json({
+            status: "success",
+            message: "List of posts in the feed",
+            total: allPublications.length,
+            page,
+            pages: Math.ceil(allPublications.length / itemsPerPage),
+            publications: allPublications.slice(0, itemsPerPage),
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Feed posts not listed",
+            error: error.message,
+        });
+    }
+};
+
+
+
 
 
 //Expoortar las acciones
@@ -557,5 +617,6 @@ module.exports = {
     addComment,
     allPublications,
     toggleWatchPublication,
-    feedLike
+    feedLike,
+    feedPublication
 };

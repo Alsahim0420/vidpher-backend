@@ -17,6 +17,7 @@ router.get("/user/:id/:page?", check.auth, publicationController.user);
 router.get("/media", publicationController.media);
 router.get("/feed/:page?", check.auth, publicationController.feed);
 router.get("/feedLike/:page?", check.auth, publicationController.feedLike);
+router.get("/feedPublication/:page?", check.auth, publicationController.feedPublication);
 router.post("/:publicationId/like", check.auth, publicationController.likePublication);
 router.post("/:publicationId/comment", check.auth, publicationController.addComment);
 

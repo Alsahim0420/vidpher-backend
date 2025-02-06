@@ -252,7 +252,7 @@ const feed = async (req, res) => {
     let page = parseInt(req.params.page) || 1;
 
     // Número de elementos por página
-    const itemsPerPage = 5;
+    const itemsPerPage = 10;
 
     try {
         // Obtener los usuarios que sigue el usuario actual

@@ -14,7 +14,16 @@ const user = require('../models/user');
 const jwt = require('../services/jwt');
 const followServices = require("../services/followService");
 const validate = require("../helpers/validate");
+const nodemailer = require('nodemailer');
 
+// Configura el transporter (aquí usamos Gmail como ejemplo)
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: 'vidpherotp@gmail.com', // Tu dirección de correo electrónico
+        pass: 'Vidpher123#' // Tu contraseña de correo electrónico
+    }
+});
 
 // Función para generar un código OTP
 const generateOtp = () => {
@@ -475,7 +484,6 @@ const counters = async (req, res) => {
 
 
 
-// Endpoint para solicitar la recuperación de contraseña
 const requestPasswordReset = async (req, res) => {
     try {
         const { email } = req.body;
@@ -491,10 +499,25 @@ const requestPasswordReset = async (req, res) => {
         foundUser.otp = otp;
         await foundUser.save();
 
-        // Aquí podrías enviar el OTP por correo electrónico (usando nodemailer, por ejemplo)
-        console.log(`OTP generado: ${otp}`); // En producción, no expongas el OTP en los logs
+        // Configurar el correo electrónico
+        const mailOptions = {
+            from: 'tucorreo@gmail.com', // Remitente
+            to: email, // Destinatario
+            subject: 'Recuperación de Contraseña', // Asunto
+            text: `Tu OTP para recuperar la contraseña es: ${otp}` // Cuerpo del correo
+        };
 
-        return res.status(200).json({ message: 'OTP sent. Check your email.' });
+        // Enviar el correo electrónico
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error('Error enviando el correo:', error);
+                return res.status(500).json({ message: 'Error sending email' });
+            } else {
+                console.log('Correo enviado:', info.response);
+                return res.status(200).json({ message: 'OTP sent. Check your email.' });
+            }
+        });
+
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });

@@ -543,55 +543,46 @@ const feedLike = async (req, res) => {
 
 
 const feedPublication = async (req, res) => {
+    // Página actual
     let page = parseInt(req.params.page) || 1;
+
+    // Número de elementos por página
     const itemsPerPage = 10;
 
     try {
-        // Obtener usuarios seguidos
+        // Obtener los usuarios que sigue el usuario actual
         const myFollows = await followService.followUserIds(req.user.id);
 
-        // Obtener publicaciones de usuarios seguidos
+        // Obtener publicaciones a las que el usuario ha dado like
+        const likedPublications = await Publication.find({ likedBy: req.user.id }).select('_id');
+        const likedPublicationIds = likedPublications.map(pub => pub._id);
+
+        // Configurar opciones de paginación
         const options = {
             page,
             limit: itemsPerPage,
-            sort: { createdAt: -1 },
+            sort: { createdAt: -1 }, // Ordenar por fecha de creación descendente
             populate: {
                 path: "user",
-                select: "-password -role -__v -email",
+                select: "-password -role -__v -email", // Excluir campos sensibles
             },
         };
-        const likedPublicationIds = likedPublications.map(pub => pub._id);
-        const followedPublications = await Publication.paginate(
-            { user: { $in: myFollows.following } },
+
+        // Buscar publicaciones de los usuarios seguidos con paginación
+        const publications = await Publication.paginate(
+            { user: { $in: myFollows.following } }, // Filtrar por usuarios seguidos
             options
         );
-
-        // Obtener publicaciones que el usuario ha dado "like"
-        const likedPublications = await Publication.find({
-            likedBy: req.user.id,
-        })
-            .populate("user", "-password -role -__v -email")
-            .sort({ createdAt: -1 });
-
-        // Unir ambas listas sin duplicados
-        const allPublications = [
-            ...new Map(
-                [...likedPublications, ...followedPublications.docs].map((p) => [
-                    p._id.toString(),
-                    p,
-                ])
-            ).values(),
-        ];
 
         // Responder con los datos
         return res.status(200).json({
             status: "success",
             message: "List of posts in the feed",
-            likedPublications: likedPublicationIds,
-            total: allPublications.length,
-            page,
-            pages: Math.ceil(allPublications.length / itemsPerPage),
-            publications: allPublications.slice(0, itemsPerPage),
+            likedPublications: likedPublicationIds, // Lista de publicaciones con like
+            total: publications.totalDocs,
+            page: publications.page,
+            pages: publications.totalPages,
+            publications: publications.docs, // Publicaciones
         });
     } catch (error) {
         return res.status(500).json({

@@ -16,6 +16,7 @@ router.delete("/remove/:id", check.auth, publicationController.remove);
 router.get("/user/:id/:page?", check.auth, publicationController.user);
 router.get("/media", publicationController.media);
 router.get("/feed/:page?", check.auth, publicationController.feed);
+router.get("/feedLike/:page?", check.auth, publicationController.feedLike);
 router.post("/:publicationId/like", check.auth, publicationController.likePublication);
 router.post("/:publicationId/comment", check.auth, publicationController.addComment);
 

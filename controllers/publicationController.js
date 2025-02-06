@@ -494,6 +494,53 @@ const toggleWatchPublication = async (req, res) => {
 };
 
 
+const feedLike = async (req, res) => {
+    // Página actual
+    let page = parseInt(req.params.page) || 1;
+
+    // Número de elementos por página
+    const itemsPerPage = 10;
+
+    try {
+        // Obtener el ID del usuario logueado
+        const userId = req.user.id;
+
+        // Opciones de paginación
+        const options = {
+            page,
+            limit: itemsPerPage,
+            sort: { createdAt: -1 }, // Ordenar por fecha de creación descendente
+            populate: {
+                path: "user",
+                select: "-password -role -__v -email", // Excluir campos sensibles
+            },
+        };
+
+        // Buscar publicaciones a las que el usuario ha dado like
+        const publications = await Publication.paginate(
+            { likedBy: userId }, // Filtrar por publicaciones que el usuario ha dado like
+            options
+        );
+
+        // Responder con los datos
+        return res.status(200).json({
+            status: "success",
+            message: "List of posts liked by the user",
+            total: publications.totalDocs,
+            page: publications.page,
+            pages: publications.totalPages,
+            publications: publications.docs, // Publicaciones
+        });
+    } catch (error) {
+        return res.status(500).json({
+            status: "error",
+            message: "Failed to fetch liked posts",
+            error: error.message,
+        });
+    }
+};
+
+
 
 //Expoortar las acciones
 module.exports = {
@@ -507,5 +554,6 @@ module.exports = {
     likePublication,
     addComment,
     allPublications,
-    toggleWatchPublication
+    toggleWatchPublication,
+    feedLike
 };

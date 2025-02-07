@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const cloudinary = require('../config/cloudinary-config');
 const Suggestion = require('../models/suggestions');
-const user = require("../models/user"); 
+const User = require("../models/user"); 
 
 
 
@@ -250,7 +250,7 @@ const media = (req, res) => {
 const feed = async (req, res) => {
     try {
         // Verificar si el usuario del token existe en la base de datos
-        const userExists = await user.findById(req.user.id);
+        const userExists = await User.findById(req.user.id);
         if (!userExists) {
             return res.status(404).json({
                 status: "error",

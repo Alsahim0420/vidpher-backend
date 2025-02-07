@@ -3,6 +3,8 @@ const fs = require("fs");
 const path = require("path");
 const cloudinary = require('../config/cloudinary-config');
 const Suggestion = require('../models/suggestions');
+const user = require("../models/user"); 
+
 
 
 //Importar modelos
@@ -168,14 +170,6 @@ const remove = async (req, res) => {
 // Listar publicaciones de un usuario
 const user = async (req, res) => {
     try {
-        // Verificar si el usuario del token existe en la base de datos
-        const userExists = await user.findById(req.user.id);
-        if (!userExists) {
-            return res.status(404).json({
-                status: "error",
-                message: "User not found",
-            });
-        }
         const userId = req.params.id;
 
         // Número de página

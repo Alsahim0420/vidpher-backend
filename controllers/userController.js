@@ -122,13 +122,12 @@ const register = async (req, res) => {
 
 
 
-
 const login = async (req, res) => {
     // Recoger los parámetros
     const params = req.body;
 
     // Validar los datos recibidos
-    if (!params.username || !params.password) {
+    if (!params.username && !params.email || !params.password) {
         return res.status(400).json({
             status: 'error',
             message: 'There is still data to send'
@@ -136,10 +135,15 @@ const login = async (req, res) => {
     }
 
     try {
-        // Buscar el usuario en la base de datos
+        // Buscar el usuario en la base de datos por username o email
         const userFound = await user
-            .findOne({ username: params.username })
-            .select('username email password role image name');
+            .findOne({ 
+                $or: [
+                    { username: params.username },
+                    { email: params.email }
+                ]
+            })
+            .select('username email password role image name bio');
 
         // Si el usuario no existe
         if (!userFound) {
@@ -203,6 +207,7 @@ const login = async (req, res) => {
         });
     }
 };
+
 
 
 
@@ -298,11 +303,9 @@ const list = async (req, res) => {
 };
 
 
-
 const update = async (req, res) => {
-    // Recoger información del usuario
-    const user_identity = req.user; // Usuario autenticado
-    const user_update = req.body; // Datos enviados desde el cliente
+    const user_identity = req.user;
+    const user_update = req.body;
     console.log(user_update);
 
     // Eliminar campos sobrantes
@@ -311,58 +314,36 @@ const update = async (req, res) => {
     delete user_update.rol;
     delete user_update.image;
 
-    // Validar si los datos necesarios están presentes
-    if (!user_update.email || !user_update.username) {
-        return res.status(400).json({
-            status: "error",
-            message: "Email and username are required",
-        });
-    }
-
     try {
-        // Comprobar si el usuario ya existe
-        const users = await user.find({
-            $or: [
-                { email: user_update.email.toLowerCase() },
-                { username: user_update.username.toLowerCase() },
-            ],
-        });
-
-        let userIsset = false;
-        users.forEach((user) => {
-            if (user && user._id.toString() !== user_identity.id) {
-                userIsset = true;
-            }
-        });
-
-        if (userIsset) {
-            return res.status(400).json({
-                status: "error",
-                message: "User is already registered",
-            });
-        }
-
-        // Encriptar contraseña si está presente en los datos de actualización
-        if (user_update.password) {
-            const hashedPassword = bcrypt.hashSync(user_update.password, 10);
-            user_update.password = hashedPassword;
-        }else[
-            delete user_update.password
-        ]
-
-        // Actualizar usuario
-        const updatedUser = await user.findByIdAndUpdate(
-            user_identity.id,
-            user_update,
-            { new: true }
-        );
-
-        if (!updatedUser) {
+        // Obtener el usuario actual
+        const existingUser = await user.findById(user_identity.id);
+        if (!existingUser) {
             return res.status(404).json({
                 status: "error",
                 message: "User Not Found",
             });
         }
+
+        // Mantener los valores actuales si no se envían en la petición
+        Object.keys(existingUser._doc).forEach(key => {
+            if (!user_update[key]) {
+                user_update[key] = existingUser[key];
+            }
+        });
+
+        // Comprobar si el email ya está en uso por otro usuario
+        if (user_update.email) {
+            const existingEmailUser = await user.findOne({ email: user_update.email.toLowerCase() });
+            if (existingEmailUser && existingEmailUser._id.toString() !== user_identity.id) {
+                return res.status(400).json({
+                    status: "error",
+                    message: "Email is already registered",
+                });
+            }
+        }
+
+        // Guardar cambios
+        const updatedUser = await user.findByIdAndUpdate(user_identity.id, user_update, { new: true });
 
         return res.status(200).json({
             status: "success",
@@ -372,11 +353,12 @@ const update = async (req, res) => {
     } catch (error) {
         return res.status(500).json({
             status: "error",
-            message: "User query or user refresh failed",
+            message: "User update failed",
             error: error.message,
         });
     }
 };
+
 
 const updateAvatar = async (userId, avatarUrl) => {
     try {

@@ -250,13 +250,13 @@ const media = (req, res) => {
 const feed = async (req, res) => {
     try {
         // Verificar si el usuario del token existe en la base de datos
-        // const userExists = await User.findById(req.user.id);
-        // if (!userExists) {
-        //     return res.status(404).json({
-        //         status: "error",
-        //         message: "User not found",
-        //     }); 
-        // }
+        const userExists = await User.findById(req.user.id);
+        if (!userExists) {
+            return res.status(404).json({
+                status: "error",
+                message: "User not found",
+            }); 
+        }
 
         // Página actual
         let page = parseInt(req.params.page) || 1;

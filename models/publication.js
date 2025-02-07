@@ -37,7 +37,9 @@ const PublicationSchema = Schema({
     isLiked: {
         type: Boolean,
         default: false
-    }
+    },
+    title:String,
+    subtitle:String,
 });
 
 // Agrega el plugin de paginación

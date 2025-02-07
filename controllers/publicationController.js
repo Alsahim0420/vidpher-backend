@@ -20,68 +20,63 @@ const prueba_publication = (req, res) => {
     })
 };
 
+
 const save = async (req, res) => {
     try {
         // Recoger datos del body
-        const params = req.body;
+        const { text, title, subtitle, watchPublication, likes, suggested, isLiked, comments, likedBy } = req.body;
 
-        // Verificar que el texto está presente
-        if (!params.text) {
+        // Validar que el texto está presente
+        if (!text) {
             return res.status(400).json({
                 status: "error",
                 message: "You must send a text message",
             });
         }
 
+        let fileUrl = null;
+
         // Verificar si se envió un archivo
-        if (!req.file) {
-            return res.status(400).json({
-                status: "error",
-                message: "No file uploaded",
-            });
-        }
+        if (req.file) {
+            const file = req.file.originalname;
+            const extension = file.split('.').pop().toLowerCase();
 
-        // Obtener el nombre del archivo y la extensión
-        const file = req.file.originalname;
-        const extension = file.split('.').pop().toLowerCase();
-
-        // Validar la extensión del archivo
-        if (!["jpg", "jpeg", "png", "gif"].includes(extension)) {
-            try {
-                await fs.unlinkSync(req.file.path); // Eliminar archivo no válido
-            } catch (err) {
-                return res.status(500).json({
+            // Validar extensión del archivo
+            if (!["jpg", "jpeg", "png", "gif"].includes(extension)) {
+                fs.unlinkSync(req.file.path); // Eliminar archivo no válido
+                return res.status(400).json({
                     status: "error",
-                    message: "Failed to delete invalid file",
-                    error: err.message || err,
+                    message: "File extension is invalid",
                 });
             }
 
-            return res.status(400).json({
-                status: "error",
-                message: "File extension is invalid",
+            // Subir archivo a Cloudinary
+            const result = await cloudinary.uploader.upload(req.file.path, {
+                folder: "publications",
             });
+
+            fileUrl = result.secure_url; // Guardar URL de la imagen
+            fs.unlinkSync(req.file.path); // Eliminar archivo temporal
         }
 
-        // Subir archivo a Cloudinary
-        const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: 'publications', // Carpeta opcional en Cloudinary
-        });
-
-        // Eliminar archivo temporal
-        fs.unlinkSync(req.file.path);
-
-        // Crear y rellenar el objeto del modelo
+        // Crear y rellenar el objeto del modelo con valores opcionales
         const newPublication = new Publication({
-            text: params.text,
-            file: result.secure_url, // URL de la imagen
-            user: req.user.id, // Usuario que crea la publicación
+            user: req.user.id, // Usuario autenticado
+            text,
+            file: fileUrl,
+            title: title || "", 
+            subtitle: subtitle || "",
+            watchPublication: watchPublication ?? true, // Si no lo envían, usa true
+            likes: likes ?? 0,
+            suggested: suggested ?? false,
+            isLiked: isLiked ?? false,
+            comments: comments || [],
+            likedBy: likedBy || [],
         });
 
         // Guardar en la base de datos
         const publicationStored = await newPublication.save();
 
-        // Responder con éxito
         return res.status(200).json({
             status: "success",
             message: "The publication has been saved",
@@ -97,6 +92,7 @@ const save = async (req, res) => {
         });
     }
 };
+
 
 // Sacar una publicacion
 const detail = async (req, res) => {
@@ -516,6 +512,82 @@ const toggleWatchPublication = async (req, res) => {
 };
 
 
+const updatePublication = async (req, res) => {
+    try {
+        const publicationId = req.params.id;
+        const { text, title, subtitle, watchPublication, likes, suggested, isLiked, comments, likedBy } = req.body;
+        console.log("id:", publicationId);
+
+        // Buscar publicación
+        let publication = await Publication.findById(publicationId);
+        if (!publication) {
+            return res.status(404).json({
+                status: "error",
+                message: "Publication not found",
+            });
+        }
+
+        // Si el usuario quiere actualizar la imagen
+        let fileUrl = publication.file;
+        if (req.file) {
+            const file = req.file.originalname;
+            const extension = file.split('.').pop().toLowerCase();
+
+            // Validar extensión del archivo
+            if (!["jpg", "jpeg", "png", "gif"].includes(extension)) {
+                fs.unlinkSync(req.file.path); // Eliminar archivo no válido
+                return res.status(400).json({
+                    status: "error",
+                    message: "File extension is invalid",
+                });
+            }
+
+            // Subir nueva imagen a Cloudinary
+            const result = await cloudinary.uploader.upload(req.file.path, {
+                folder: "publications",
+            });
+
+            fileUrl = result.secure_url;
+            fs.unlinkSync(req.file.path); // Eliminar archivo temporal
+
+            // Si había una imagen anterior, se podría eliminar de Cloudinary aquí
+        }
+
+        // Actualizar los datos con los valores proporcionados o mantener los anteriores
+        const updatedPublication = await Publication.findByIdAndUpdate(
+            publicationId,
+            {
+                text: text ?? publication.text,
+                file: fileUrl,
+                title: title ?? publication.title,
+                subtitle: subtitle ?? publication.subtitle,
+                watchPublication: watchPublication ?? publication.watchPublication,
+                likes: likes ?? publication.likes,
+                suggested: suggested ?? publication.suggested,
+                isLiked: isLiked ?? publication.isLiked,
+                comments: comments ?? publication.comments,
+                likedBy: likedBy ?? publication.likedBy,
+            },
+            { new: true } // Devolver la publicación actualizada
+        );
+
+        return res.status(200).json({
+            status: "success",
+            message: "The publication has been updated",
+            publication: updatedPublication,
+        });
+
+    } catch (err) {
+        console.error("Error updating publication:", err);
+        return res.status(500).json({
+            status: "error",
+            message: "Publication not updated",
+            error: err.message || err,
+        });
+    }
+};
+
+
 
 
 
@@ -532,4 +604,5 @@ module.exports = {
     addComment,
     allPublications,
     toggleWatchPublication,
+    updatePublication
 };

@@ -18,10 +18,11 @@ router.get("/media", publicationController.media);
 router.get("/feed/:page?", check.auth, publicationController.feed);
 router.post("/:publicationId/like", check.auth, publicationController.likePublication);
 router.post("/:publicationId/comment", check.auth, publicationController.addComment);
+router.put('/update/:publicationId/toggle/watch', check.auth, publicationController.toggleWatchPublication);
 
 //Dashboard
 router.get("/allPublications", check.auth, publicationController.allPublications);
-router.put('/publications/:publicationId/toggle/watch', check.auth, publicationController.toggleWatchPublication);
+router.put('/updatePublication/:id', check.auth, publicationController.updatePublication);
 
 // Exportar el módulo de rutas
 module.exports = router;

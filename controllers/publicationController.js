@@ -168,7 +168,14 @@ const remove = async (req, res) => {
 // Listar publicaciones de un usuario
 const user = async (req, res) => {
     try {
-        // Sacar el id del usuario
+        // Verificar si el usuario del token existe en la base de datos
+        const userExists = await user.findById(req.user.id);
+        if (!userExists) {
+            return res.status(404).json({
+                status: "error",
+                message: "User not found",
+            });
+        }
         const userId = req.params.id;
 
         // Número de página
@@ -246,15 +253,23 @@ const media = (req, res) => {
     return res.redirect(file);
 };
 
-
 const feed = async (req, res) => {
-    // Página actual
-    let page = parseInt(req.params.page) || 1;
-
-    // Número de elementos por página
-    const itemsPerPage = 10;
-
     try {
+        // Verificar si el usuario del token existe en la base de datos
+        const userExists = await user.findById(req.user.id);
+        if (!userExists) {
+            return res.status(404).json({
+                status: "error",
+                message: "User not found",
+            });
+        }
+
+        // Página actual
+        let page = parseInt(req.params.page) || 1;
+
+        // Número de elementos por página
+        const itemsPerPage = 10;
+
         // Obtener los usuarios que sigue el usuario actual
         const myFollows = await followService.followUserIds(req.user.id);
 
@@ -269,7 +284,7 @@ const feed = async (req, res) => {
             sort: { createdAt: -1 }, // Ordenar por fecha de creación descendente
             populate: {
                 path: "user",
-                select: "-password -role -__v -email", // Excluir campos sensibles
+                select: "-password -__v -createdAt -token", // Excluir campos sensibles
             },
         };
 
@@ -304,6 +319,7 @@ const feed = async (req, res) => {
         });
     }
 };
+
 
 
 const likePublication = async (req, res) => {

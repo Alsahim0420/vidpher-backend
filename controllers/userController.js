@@ -121,13 +121,12 @@ const register = async (req, res) => {
 
 
 
-
 const login = async (req, res) => {
     // Recoger los parámetros
     const params = req.body;
 
     // Validar los datos recibidos
-    if (!params.username && !params.email || !params.password) {
+    if ((!params.username && !params.email) || !params.password) {
         return res.status(400).json({
             status: 'error',
             message: 'There is still data to send'
@@ -137,7 +136,7 @@ const login = async (req, res) => {
     try {
         // Buscar el usuario en la base de datos por username o email
         const userFound = await user
-            .findOne({ 
+            .findOne({
                 $or: [
                     { username: params.username },
                     { email: params.email }
@@ -173,28 +172,11 @@ const login = async (req, res) => {
         // Generar el token
         const token = jwt.createToken(userFound);
 
-        // Consultar publicaciones asociadas al usuario
-        const publications = await Publication.find({ user: userFound._id })
-            .select('file likes comments');
-
-        // Consultar contadores relacionados al usuario
-        const following = await Follow.countDocuments({ user: userFound._id });
-        const followed = await Follow.countDocuments({ followed: userFound._id });
-        const publicationsCount = await Publication.countDocuments({ user: userFound._id });
-
-        // Responder con la información del usuario, token, publicaciones y contadores
+        // Responder solo con la información del usuario y el token
         return res.status(200).json({
             status: 'success',
             message: 'Correct login',
             user: userFound,
-            data: {
-                publications,
-                counters: {
-                    following,
-                    followed,
-                    publications: publicationsCount
-                }
-            },
             token: token
         });
     } catch (error) {
@@ -207,7 +189,6 @@ const login = async (req, res) => {
         });
     }
 };
-
 
 
 
@@ -228,16 +209,31 @@ const profile = async (req, res) => {
             });
         }
 
-
-        //Informacion del seguimiento
+        // Información del seguimiento
         const followInfo = await followServices.followThisUser(req.user.id, id);
+
+        // Consultar contadores relacionados al usuario
+        const following = await Follow.countDocuments({ user: id });
+        const followed = await Follow.countDocuments({ followed: id });
+        const publicationsCount = await Publication.countDocuments({ user: id });
+
+        // Consultar publicaciones del usuario
+        const publications = await Publication.find({ user: id })
+            .select('file likes comments createdAt')
+            .sort({ createdAt: -1 });
 
         // Devolver el resultado
         return res.status(200).send({
             status: 'success',
             user: userFound,
             followinfo: followInfo.following,
-            followr: followInfo.followers
+            followr: followInfo.followers,
+            counters: {
+                following,
+                followed,
+                publications: publicationsCount
+            },
+            publications
         });
 
     } catch (err) {
@@ -249,6 +245,7 @@ const profile = async (req, res) => {
         });
     }
 };
+
 
 const list = async (req, res) => {
     try {

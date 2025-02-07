@@ -33,6 +33,10 @@ const PublicationSchema = Schema({
     suggested: {
         type: Boolean,
         default: false
+    },
+    isLiked: {
+        type: Boolean,
+        default: false
     }
 });
 

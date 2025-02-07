@@ -260,7 +260,7 @@ const feed = async (req, res) => {
 
         // Obtener publicaciones a las que el usuario ha dado like
         const likedPublications = await Publication.find({ likedBy: req.user.id }).select('_id');
-        const likedPublicationIds = likedPublications.map(pub => pub._id);
+        const likedPublicationIds = likedPublications.map(pub => pub._id.toString()); // Convertir a string
 
         // Configurar opciones de paginación
         const options = {
@@ -279,23 +279,30 @@ const feed = async (req, res) => {
             options
         );
 
+        // Añadir propiedad isLiked a cada publicación
+        const likedIdsSet = new Set(likedPublicationIds);
+        const publicationsWithLikes = publications.docs.map(publication => ({
+            ...publication.toObject(), // Convierte a un objeto plano
+            isLiked: likedIdsSet.has(publication._id.toString()),
+        }));
+
         // Responder con los datos
         return res.status(200).json({
             status: "success",
             message: "List of posts in the feed",
-            likedPublications: likedPublicationIds, // Lista de publicaciones con like
+            likedPublicationIds: likedPublicationIds,
             total: publications.totalDocs,
             page: publications.page,
             pages: publications.totalPages,
-            publications: publications.docs, // Publicaciones
+            publications: publicationsWithLikes, // Publicaciones con isLiked
         });
     } catch (error) {
         return res.status(500).json({
             status: "error",
             message: "Feed posts not listed",
             error: error.message,
-        });
-    }
+        });
+    }
 };
 
 
@@ -488,9 +495,9 @@ const toggleWatchPublication = async (req, res) => {
         publication.watchPublication = !publication.watchPublication; // Invierte el valor actual
         await publication.save();
 
-        res.status(200).json({ 
-            message: `watchPublication updated to ${publication.watchPublication}`, 
-            publication 
+        res.status(200).json({
+            message: `watchPublication updated to ${publication.watchPublication}`,
+            publication
         });
     } catch (error) {
         console.error("Error toggling watchPublication:", error);

@@ -511,12 +511,22 @@ const toggleWatchPublication = async (req, res) => {
     }
 };
 
-
 const updatePublication = async (req, res) => {
     try {
+        console.log("📌 Request recibido en updatePublication");
+
         const publicationId = req.params.id;
-        const { text, title, subtitle, watchPublication, likes, suggested, isLiked, comments, likedBy } = req.body;
-        console.log("id:", publicationId);
+        console.log("🆔 ID de publicación:", publicationId);
+        console.log("📦 Request Body:", req.body);
+        console.log("📂 Archivo recibido:", req.file);
+
+        // Validar si el body está vacío
+        if (Object.keys(req.body).length === 0 && !req.file) {
+            return res.status(400).json({
+                status: "error",
+                message: "No data provided for update",
+            });
+        }
 
         // Buscar publicación
         let publication = await Publication.findById(publicationId);
@@ -527,58 +537,49 @@ const updatePublication = async (req, res) => {
             });
         }
 
-        // Si el usuario quiere actualizar la imagen
+        console.log("🔹 Publicación actual encontrada:", publication);
+
+        // Extraer datos del body
+        const { text, title, subtitle, watchPublication, likes, suggested, isLiked, comments, likedBy } = req.body;
+
+        // Manejo de imagen (si hay un archivo)
         let fileUrl = publication.file;
         if (req.file) {
-            const file = req.file.originalname;
-            const extension = file.split('.').pop().toLowerCase();
+            console.log("✅ Subiendo imagen a Cloudinary...");
 
-            // Validar extensión del archivo
-            if (!["jpg", "jpeg", "png", "gif"].includes(extension)) {
-                fs.unlinkSync(req.file.path); // Eliminar archivo no válido
-                return res.status(400).json({
-                    status: "error",
-                    message: "File extension is invalid",
-                });
-            }
-
-            // Subir nueva imagen a Cloudinary
-            const result = await cloudinary.uploader.upload(req.file.path, {
-                folder: "publications",
-            });
+            const result = await cloudinary.uploader.upload(req.file.path, { folder: "publications" });
 
             fileUrl = result.secure_url;
             fs.unlinkSync(req.file.path); // Eliminar archivo temporal
 
-            // Si había una imagen anterior, se podría eliminar de Cloudinary aquí
+            console.log("✅ Nueva imagen subida:", fileUrl);
         }
 
-        // Actualizar los datos con los valores proporcionados o mantener los anteriores
-        const updatedPublication = await Publication.findByIdAndUpdate(
-            publicationId,
-            {
-                text: text ?? publication.text,
-                file: fileUrl,
-                title: title ?? publication.title,
-                subtitle: subtitle ?? publication.subtitle,
-                watchPublication: watchPublication ?? publication.watchPublication,
-                likes: likes ?? publication.likes,
-                suggested: suggested ?? publication.suggested,
-                isLiked: isLiked ?? publication.isLiked,
-                comments: comments ?? publication.comments,
-                likedBy: likedBy ?? publication.likedBy,
-            },
-            { new: true } // Devolver la publicación actualizada
-        );
+        // Actualizar los datos (sin modificar valores no enviados)
+        publication.text = text || publication.text;
+        publication.file = fileUrl;
+        publication.title = title || publication.title;
+        publication.subtitle = subtitle || publication.subtitle;
+        publication.watchPublication = watchPublication || publication.watchPublication;
+        publication.likes = likes || publication.likes;
+        publication.suggested = suggested || publication.suggested;
+        publication.isLiked = isLiked || publication.isLiked;
+        publication.comments = comments || publication.comments;
+        publication.likedBy = likedBy || publication.likedBy;
+
+        // Guardar cambios
+        await publication.save();
+
+        console.log("✅ Publicación actualizada correctamente:", publication);
 
         return res.status(200).json({
             status: "success",
             message: "The publication has been updated",
-            publication: updatedPublication,
+            publication,
         });
 
     } catch (err) {
-        console.error("Error updating publication:", err);
+        console.error("❌ Error updating publication:", err);
         return res.status(500).json({
             status: "error",
             message: "Publication not updated",

@@ -22,7 +22,7 @@ router.put('/update/:publicationId/toggle/watch', check.auth, publicationControl
 
 //Dashboard
 router.get("/allPublications", check.auth, publicationController.allPublications);
-router.put('/updatePublication/:id', check.auth, publicationController.updatePublication);
+router.put('/updatePublication/:id', [check.auth, uploads.single("file0")], publicationController.updatePublication);
 
 // Exportar el módulo de rutas
 module.exports = router;

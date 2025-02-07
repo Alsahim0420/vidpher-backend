@@ -120,26 +120,26 @@ const register = async (req, res) => {
 
 
 
-
 const login = async (req, res) => {
     // Recoger los parámetros
-    const params = req.body;
+    const { identifier, password } = req.body;
 
     // Validar los datos recibidos
-    if ((!params.username && !params.email) || !params.password) {
+    if (!identifier || !password) {
         return res.status(400).json({
             status: 'error',
-            message: 'There is still data to send'
+            message: 'Identifier and password are required'
         });
     }
 
     try {
-        // Buscar el usuario en la base de datos por username o email
+        // Buscar el usuario en la base de datos por username, email o name
         const userFound = await user
             .findOne({
                 $or: [
-                    { username: params.username },
-                    { email: params.email }
+                    { username: identifier },
+                    { email: identifier },
+                    { name: identifier }
                 ]
             })
             .select('username email password role image name bio');
@@ -160,7 +160,7 @@ const login = async (req, res) => {
         }
 
         // Comprobar la contraseña con bcrypt
-        const isPasswordValid = bcrypt.compareSync(params.password, userFound.password);
+        const isPasswordValid = bcrypt.compareSync(password, userFound.password);
 
         if (!isPasswordValid) {
             return res.status(400).json({

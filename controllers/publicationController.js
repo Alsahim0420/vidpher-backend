@@ -301,8 +301,8 @@ const feed = async (req, res) => {
             status: "error",
             message: "Feed posts not listed",
             error: error.message,
-        });
-    }
+        });
+    }
 };
 
 

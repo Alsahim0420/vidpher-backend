@@ -6,17 +6,7 @@ const check = require('../middlewares/auth');
 const uploadAvatar = require('../middlewares/uploadAvatar');
 
 
-// Configuración de Multer para almacenamiento temporal
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, './uploads/avatars/');
-    },
-    filename: (req, file, cb) => {
-        cb(null, "avatar-" + Date.now() + "-" + file.originalname);
-    }
-});
-
-const uploads = multer({ storage });
+const uploads = multer({ dest: 'temp/'});
 
 // Definir las rutas de la API
 router.get("/prueba_user", check.auth, userController.prueba_user);

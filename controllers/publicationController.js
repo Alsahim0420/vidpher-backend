@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 const cloudinary = require('../config/cloudinary-config');
 const Suggestion = require('../models/suggestions');
-const User = require("../models/user"); 
+const User = require("../models/user");
 const userController = require("./userController");
 
 
@@ -65,7 +65,7 @@ const save = async (req, res) => {
             user: req.user.id, // Usuario autenticado
             text,
             file: fileUrl,
-            title: title || "", 
+            title: title || "",
             subtitle: subtitle || "",
             watchPublication: watchPublication ?? true, // Si no lo envían, usa true
             likes: likes ?? 0,
@@ -252,7 +252,7 @@ const feed = async (req, res) => {
             return res.status(404).json({
                 status: "error",
                 message: "User not found",
-            }); 
+            });
         }
 
         // Página actual
@@ -326,7 +326,9 @@ const likePublication = async (req, res) => {
         const userId = req.user.id; // ID del usuario que está dando like
 
         // Buscar la publicación
-        const publication = await Publication.findById(publicationId).populate('user', 'username email name role image'); // Asegúrate de que 'user' es el campo que referencia al usuario en tu modelo de Publicación
+        const publication = await Publication.findById(publicationId)
+        .populate('user', 'username email name role image')
+        .populate('comments.user', 'username email name role image'); // Asegúrate de que 'user' es el campo que referencia al usuario en tu modelo de Publicación
 
         if (!publication) {
             return res.status(404).json({ message: "Post not found" });
@@ -393,7 +395,6 @@ const likePublication = async (req, res) => {
             publication: {
                 ...publication.toObject(), // Convertir el documento de Mongoose a un objeto plano
                 isLiked: publication.likedBy.includes(userId), // Calcular isLied
-                userDetails: user // Incluir la información del usuario
             }
         });
     } catch (error) {
@@ -410,29 +411,29 @@ const likePublication = async (req, res) => {
 // Método para agregar un comentario a una publicación
 const addComment = async (req, res) => {
     try {
-        const { publicationId } = req.params; 
-        const { text } = req.body; 
-        const userId = req.user.id; 
+        const { publicationId } = req.params;
+        const { text } = req.body;
+        const userId = req.user.id;
 
-        
+
         const publication = await Publication.findByIdAndUpdate(
             publicationId,
-            { $push: { comments: { user: userId, text } } }, 
-            { new: true } 
+            { $push: { comments: { user: userId, text } } },
+            { new: true }
         ).populate({
-            path: 'comments.user', 
-            select: '-password' 
+            path: 'comments.user',
+            select: '-password'
         });
 
         if (!publication) {
             return res.status(404).json({ message: "Post not found" });
         }
 
-       
+
         const populatedPublication = await Publication.findById(publication._id)
             .populate({
-                path: 'comments.user', 
-                select: '-password' 
+                path: 'comments.user',
+                select: '-password'
             });
 
         res.status(200).json({ message: "Comment added successfully", publication: populatedPublication });

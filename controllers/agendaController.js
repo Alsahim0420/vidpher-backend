@@ -112,8 +112,9 @@ const byDate = async (req, res) => {
         // Validar si no hay reuniones en la fecha indicada
         if (meetings.length === 0) {
             return res.status(404).send({
-                status: 'error',
-                message: `No meetings found for the date: ${date}`
+                "status": "success",
+                "message": "Meetings retrieved successfully.",
+                "agenda": []
             });
         }
 

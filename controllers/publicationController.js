@@ -286,7 +286,6 @@ const feed = async (req, res) => {
                     select: "-password -__v -createdAt -token", // Excluir campos sensibles
                 }
             ],
-            
         };
 
         // Buscar publicaciones de los usuarios seguidos con paginación
@@ -321,14 +320,13 @@ const feed = async (req, res) => {
     }
 };
 
-
 const likePublication = async (req, res) => {
     try {
         const { publicationId } = req.params;
         const userId = req.user.id; // ID del usuario que está dando like
 
         // Buscar la publicación
-        const publication = await Publication.findById(publicationId);
+        const publication = await Publication.findById(publicationId).populate('user', 'username email name role'); // Asegúrate de que 'user' es el campo que referencia al usuario en tu modelo de Publicación
 
         if (!publication) {
             return res.status(404).json({ message: "Post not found" });
@@ -386,12 +384,16 @@ const likePublication = async (req, res) => {
             console.log("The post already has a suggestion.");
         }
 
-        // Respuesta con el estado de isLiked dentro de la publicación
+        // Obtener la información completa del usuario que dio like
+        const user = await User.findById(userId).select('-password'); // Excluir la contraseña por seguridad
+
+        // Respuesta con el estado de isLiked dentro de la publicación y la información del usuario
         res.status(200).json({
             message: "Like toggled successfully",
             publication: {
                 ...publication.toObject(), // Convertir el documento de Mongoose a un objeto plano
-                isLiked: publication.likedBy.includes(userId) // Calcular isLied
+                isLiked: publication.likedBy.includes(userId), // Calcular isLied
+                userDetails: user // Incluir la información del usuario
             }
         });
     } catch (error) {

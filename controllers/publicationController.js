@@ -43,7 +43,7 @@ const save = async (req, res) => {
             const extension = file.split('.').pop().toLowerCase();
 
             // Validar extensión del archivo
-            if (!["jpg", "jpeg", "png", "gif"].includes(extension)) {
+            if (!["jpg", "jpeg", "png", "gif", "mp4", "mov", "avi", "mkv"].includes(extension)) {
                 fs.unlinkSync(req.file.path); // Eliminar archivo no válido
                 return res.status(400).json({
                     status: "error",

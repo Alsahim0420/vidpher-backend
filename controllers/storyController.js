@@ -29,7 +29,7 @@ const upload = async (req, res) => {
         const extension = file.split('.').pop().toLowerCase();
 
         // Validar la extensión del archivo
-        if (!["jpg", "jpeg", "png", "gif"].includes(extension)) {
+        if (!["jpg", "jpeg", "png", "gif", "mp4", "mov", "avi", "mkv"].includes(extension)) {
             try {
                 await fs.unlinkSync(req.file.path); // Eliminar archivo
             } catch (err) {

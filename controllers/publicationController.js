@@ -326,7 +326,7 @@ const likePublication = async (req, res) => {
         const userId = req.user.id; // ID del usuario que está dando like
 
         // Buscar la publicación
-        const publication = await Publication.findById(publicationId).populate('user', 'username email name role'); // Asegúrate de que 'user' es el campo que referencia al usuario en tu modelo de Publicación
+        const publication = await Publication.findById(publicationId).populate('user', 'username email name role image'); // Asegúrate de que 'user' es el campo que referencia al usuario en tu modelo de Publicación
 
         if (!publication) {
             return res.status(404).json({ message: "Post not found" });

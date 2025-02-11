@@ -217,10 +217,14 @@ const profile = async (req, res) => {
         const followed = await Follow.countDocuments({ followed: id });
         const publicationsCount = await Publication.countDocuments({ user: id });
 
-        // Consultar publicaciones del usuario
+        // Consultar publicaciones del usuario y poblar los comentarios con la información del usuario
         const publications = await Publication.find({ user: id })
             .select('file likes comments createdAt')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .populate({
+                path: 'comments.user',
+                select: '-password' // Selecciona los campos que quieres traer del usuario
+            });
 
         // Devolver el resultado
         return res.status(200).send({

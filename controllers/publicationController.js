@@ -4,6 +4,7 @@ const path = require("path");
 const cloudinary = require('../config/cloudinary-config');
 const Suggestion = require('../models/suggestions');
 const User = require("../models/user"); 
+const userController = require("./userController");
 
 
 
@@ -267,15 +268,25 @@ const feed = async (req, res) => {
         const likedPublications = await Publication.find({ likedBy: req.user.id }).select('_id');
         const likedPublicationIds = likedPublications.map(pub => pub._id.toString()); // Convertir a string
 
+        const user = req.user.id;
+        console.log("👤 User:", user);
+
         // Configurar opciones de paginación
         const options = {
             page,
             limit: itemsPerPage,
             sort: { createdAt: -1 }, // Ordenar por fecha de creación descendente
-            populate: {
-                path: "user",
-                select: "-password -__v -createdAt -token", // Excluir campos sensibles
-            },
+            populate: [
+                {
+                    path: "user",
+                    select: "-password -__v -createdAt -token", // Excluir campos sensibles
+                },
+                {
+                    path: "comments.user", // Poblar el usuario en cada comentario
+                    select: "-password -__v -createdAt -token", // Excluir campos sensibles
+                }
+            ],
+            
         };
 
         // Buscar publicaciones de los usuarios seguidos con paginación
@@ -311,11 +322,10 @@ const feed = async (req, res) => {
 };
 
 
-
 const likePublication = async (req, res) => {
     try {
         const { publicationId } = req.params;
-        const userId = req.user.id; // Asumiendo que el ID del usuario está en el token
+        const userId = req.user.id; // ID del usuario que está dando like
 
         // Buscar la publicación
         const publication = await Publication.findById(publicationId);
@@ -340,7 +350,8 @@ const likePublication = async (req, res) => {
         // Guardar la publicación actualizada
         await publication.save();
 
-        console.log("Likes después de la acción:", publication.likes);
+        // Pasar el ID del usuario al campo virtual
+        publication._locals = { userId }; // Esto permite que el campo virtual isLied funcione
 
         // Verificar si la publicación llegó a 40 likes
         if (publication.likes >= 40 && !publication.suggested) {
@@ -375,7 +386,14 @@ const likePublication = async (req, res) => {
             console.log("The post already has a suggestion.");
         }
 
-        res.status(200).json({ message: "Like toggled successfully", publication });
+        // Respuesta con el estado de isLiked dentro de la publicación
+        res.status(200).json({
+            message: "Like toggled successfully",
+            publication: {
+                ...publication.toObject(), // Convertir el documento de Mongoose a un objeto plano
+                isLiked: publication.likedBy.includes(userId) // Calcular isLied
+            }
+        });
     } catch (error) {
         console.error("Error when liking:", error);
         res.status(500).json({ message: "Server Error" });
@@ -390,62 +408,32 @@ const likePublication = async (req, res) => {
 // Método para agregar un comentario a una publicación
 const addComment = async (req, res) => {
     try {
-        const { publicationId } = req.params; // ID de la publicación
-        const { text } = req.body; // Texto del comentario
-        const userId = req.user.id; // ID del usuario
+        const { publicationId } = req.params; 
+        const { text } = req.body; 
+        const userId = req.user.id; 
 
-        // Buscar la publicación por ID y agregar el comentario
+        
         const publication = await Publication.findByIdAndUpdate(
             publicationId,
-            { $push: { comments: { user: userId, text } } }, // Agrega el comentario al array
-            { new: true } // Retorna el documento actualizado
-        );
+            { $push: { comments: { user: userId, text } } }, 
+            { new: true } 
+        ).populate({
+            path: 'comments.user', 
+            select: '-password' 
+        });
 
         if (!publication) {
             return res.status(404).json({ message: "Post not found" });
         }
 
-        // Verificar si la publicación ha superado los 40 likes
-        if (publication.likes >= 40 && !publication.suggested) {
-            // Comprobar si la publicación ya está en la colección "Suggestion"
-            const existingSuggestion = await Suggestion.findOne({ originalPublicationId: publication._id });
+       
+        const populatedPublication = await Publication.findById(publication._id)
+            .populate({
+                path: 'comments.user', 
+                select: '-password' 
+            });
 
-            if (!existingSuggestion) {
-                // Validar campos de la publicación antes de crear la sugerencia
-                const suggestionData = {
-                    text: publication.text || "Text not available", // Campo obligatorio
-                    user: publication.user || null, // Asegurarse de que el autor esté presente
-                    createdAt: publication.createdAt || Date.now(), // Fecha de creación
-                    likes: publication.likes,
-                    comments: publication.comments, // Obtener los comentarios de la publicación
-                    originalPublicationId: publication._id,
-                    // Agregar otros campos relevantes
-                };
-
-                // Crear la sugerencia
-                const suggestion = new Suggestion(suggestionData);
-
-                // Guardar la sugerencia en la base de datos
-                await suggestion.save();
-
-                // Actualizar la publicación para marcarla como sugerida
-                publication.suggested = true;
-                await publication.save();
-            }
-        } else if (publication.likes >= 40) {
-            // Si la sugerencia ya existe, actualizar los comentarios en la sugerencia
-            const existingSuggestion = await Suggestion.findOneAndUpdate(
-                { originalPublicationId: publication._id },
-                { comments: publication.comments }, // Actualizar los comentarios
-                { new: true } // Retornar el documento actualizado
-            );
-
-            if (existingSuggestion) {
-                console.log("Updated suggestion with new comments:", existingSuggestion);
-            }
-        }
-
-        res.status(200).json({ message: "Comment added successfully", publication });
+        res.status(200).json({ message: "Comment added successfully", publication: populatedPublication });
     } catch (error) {
         console.error("Error adding comment:", error);
         res.status(500).json({ message: "Server Error" });

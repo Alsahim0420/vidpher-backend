@@ -29,17 +29,23 @@ const PublicationSchema = Schema({
         type: Schema.ObjectId,
         ref: "User"
     }],
-    comments: Array,
+    comments: [{
+        user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // Referencia al usuario que comentó
+        text: String,
+        createdAt: { type: Date, default: Date.now }
+    }],
     suggested: {
         type: Boolean,
         default: false
     },
-    isLiked: {
-        type: Boolean,
-        default: false
-    },
-    title:String,
-    subtitle:String,
+    title: String,
+    subtitle: String,
+});
+
+
+PublicationSchema.virtual('isLiked').get(function () {
+    // this se refiere al documento actual (publicación)
+    return this.likedBy.includes(this._locals.userId); // Verifica si el usuario actual dio like
 });
 
 // Agrega el plugin de paginación

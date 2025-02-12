@@ -48,6 +48,10 @@ PublicationSchema.virtual('isLiked').get(function () {
     return this.likedBy.includes(this._locals.userId); // Verifica si el usuario actual dio like
 });
 
+// Configurar para que las propiedades virtuales se incluyan en toJSON y toObject
+PublicationSchema.set('toJSON', { virtuals: true });
+PublicationSchema.set('toObject', { virtuals: true });
+
 // Agrega el plugin de paginación
 PublicationSchema.plugin(mongoosePaginate);
 

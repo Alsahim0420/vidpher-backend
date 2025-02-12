@@ -191,7 +191,6 @@ const login = async (req, res) => {
 };
 
 
-
 const profile = async (req, res) => {
     try {
         // Recibir el parámetro
@@ -199,7 +198,7 @@ const profile = async (req, res) => {
 
         // Buscar al usuario por ID
         const userFound = await user.findById(id)
-            .select({ password: 0, role: 0, otp: 0 });
+            .select({ password: 0, otp: 0 });
 
         // Validar si el usuario no existe
         if (!userFound) {
@@ -219,25 +218,30 @@ const profile = async (req, res) => {
 
         // Consultar publicaciones del usuario y poblar los comentarios con la información del usuario
         const publications = await Publication.find({ user: id })
-            .select('file likes comments createdAt')
+            .select('file likes likedBy comments createdAt')
             .sort({ createdAt: -1 })
             .populate({
                 path: 'comments.user',
                 select: '-password' // Selecciona los campos que quieres traer del usuario
             });
 
+        // Agregar _locals.userId y convertir publicaciones a objetos con virtuals
+        const userId = req.user.id;
+        const publicationsWithLikes = publications.map(publication => {
+            publication._locals = { userId };
+            return publication.toObject({ virtuals: true }); // Incluye isLiked
+        });
+
         // Devolver el resultado
         return res.status(200).send({
             status: 'success',
             user: userFound,
-            followinfo: followInfo.following,
-            followr: followInfo.followers,
             counters: {
                 following,
                 followed,
                 publications: publicationsCount
             },
-            publications
+            publications: publicationsWithLikes
         });
 
     } catch (err) {
@@ -249,6 +253,7 @@ const profile = async (req, res) => {
         });
     }
 };
+
 
 
 const list = async (req, res) => {

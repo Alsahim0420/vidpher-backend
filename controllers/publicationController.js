@@ -244,6 +244,7 @@ const media = (req, res) => {
     return res.redirect(file);
 };
 
+
 const feed = async (req, res) => {
     try {
         // Verificar si el usuario del token existe en la base de datos
@@ -263,13 +264,6 @@ const feed = async (req, res) => {
 
         // Obtener los usuarios que sigue el usuario actual
         const myFollows = await followService.followUserIds(req.user.id);
-
-        // Obtener publicaciones a las que el usuario ha dado like
-        const likedPublications = await Publication.find({ likedBy: req.user.id }).select('_id');
-        const likedPublicationIds = likedPublications.map(pub => pub._id.toString()); // Convertir a string
-
-        const user = req.user.id;
-        console.log("👤 User:", user);
 
         // Configurar opciones de paginación
         const options = {
@@ -294,18 +288,17 @@ const feed = async (req, res) => {
             options
         );
 
-        // Añadir propiedad isLiked a cada publicación
-        const likedIdsSet = new Set(likedPublicationIds);
-        const publicationsWithLikes = publications.docs.map(publication => ({
-            ...publication.toObject(), // Convierte a un objeto plano
-            isLiked: likedIdsSet.has(publication._id.toString()),
-        }));
+        // Asignar el userId a cada publicación y convertir a objetos con virtuales
+        const userId = req.user.id;
+        const publicationsWithLikes = publications.docs.map(publication => {
+            publication._locals = { userId }; // Asigna userId para calcular isLiked
+            return publication.toObject({ virtuals: true }); // Incluir isLiked
+        });
 
         // Responder con los datos
         return res.status(200).json({
             status: "success",
             message: "List of posts in the feed",
-            likedPublicationIds: likedPublicationIds,
             total: publications.totalDocs,
             page: publications.page,
             pages: publications.totalPages,
@@ -319,6 +312,7 @@ const feed = async (req, res) => {
         });
     }
 };
+
 
 const likePublication = async (req, res) => {
     try {

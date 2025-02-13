@@ -8,9 +8,7 @@ const check = require("../middlewares/auth");
 const uploads = multer({ dest: 'temp/' });
 
 router.post("/upload", [check.auth, uploads.single("file0")], storyController.upload);
-router.get("/prueba", storyController.prueba_story);
-router.get("/myStories", check.auth, storyController.myStories);
-router.get("/followedStories", check.auth, storyController.followedStories);
+router.get("/allStories", check.auth, storyController.allStories);
 
 
 module.exports = router;

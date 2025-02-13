@@ -57,8 +57,8 @@ const register = async (req, res) => {
         validate.validate(params);
 
         // Convertir email y username a minúsculas para consistencia
-        const emailLower = params.email;
-        const usernameLower = params.username;
+        const emailLower = params.email.toLowerCase();
+        const usernameLower = params.username.toLowerCase();
 
         // Verificar si el usuario o email ya existen
         const existingUser = await user.findOne({
@@ -79,13 +79,14 @@ const register = async (req, res) => {
         const hashedPassword = bcrypt.hashSync(params.password, 10);
         params.password = hashedPassword;
 
-        // Crear y guardar el nuevo usuario
+        // Crear y guardar el nuevo usuario con una bio por defecto
         const user_obj = new user({
             name: params.name,
             username: usernameLower,
             email: emailLower,
             password: params.password,
             role: params.role,
+            bio: params.bio || "Hello! I'm new here.", // Bio por defecto
         });
 
         const userStored = await user_obj.save();
@@ -120,75 +121,75 @@ const register = async (req, res) => {
 
 
 
-const login = async (req, res) => {
-    // Recoger los parámetros
-    const { identifier, password } = req.body;
+    const login = async (req, res) => {
+        // Recoger los parámetros
+        const { identifier, password } = req.body;
 
-    // Validar los datos recibidos
-    if (!identifier || !password) {
-        return res.status(400).json({
-            status: 'error',
-            message: 'Identifier and password are required'
-        });
-    }
-
-    try {
-        // Buscar el usuario en la base de datos por username, email o name
-        const userFound = await user
-            .findOne({
-                $or: [
-                    { username: identifier },
-                    { email: identifier },
-                    { name: identifier }
-                ]
-            })
-            .select('username email password role image name bio');
-
-        // Si el usuario no existe
-        if (!userFound) {
+        // Validar los datos recibidos
+        if (!identifier || !password) {
             return res.status(400).json({
                 status: 'error',
-                message: 'The user does not exist'
+                message: 'Identifier and password are required'
             });
         }
 
-        if (!userFound.password) {
+        try {
+            // Buscar el usuario en la base de datos por username, email o name
+            const userFound = await user
+                .findOne({
+                    $or: [
+                        { username: identifier },
+                        { email: identifier },
+                        { name: identifier }
+                    ]
+                })
+                .select('username email password role image name bio');
+
+            // Si el usuario no existe
+            if (!userFound) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'The user does not exist'
+                });
+            }
+
+            if (!userFound.password) {
+                return res.status(500).json({
+                    status: 'error',
+                    message: 'Password field is missing for this user'
+                });
+            }
+
+            // Comprobar la contraseña con bcrypt
+            const isPasswordValid = bcrypt.compareSync(password, userFound.password);
+
+            if (!isPasswordValid) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Incorrect password'
+                });
+            }
+
+            // Generar el token
+            const token = jwt.createToken(userFound);
+
+            // Responder solo con la información del usuario y el token
+            return res.status(200).json({
+                status: 'success',
+                message: 'Correct login',
+                user: userFound,
+                token: token
+            });
+        } catch (error) {
+            // Manejo de errores
+            console.error("Error in login:", error);
             return res.status(500).json({
                 status: 'error',
-                message: 'Password field is missing for this user'
+                message: 'Server Error',
+                error: error.message
             });
         }
-
-        // Comprobar la contraseña con bcrypt
-        const isPasswordValid = bcrypt.compareSync(password, userFound.password);
-
-        if (!isPasswordValid) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'Incorrect password'
-            });
-        }
-
-        // Generar el token
-        const token = jwt.createToken(userFound);
-
-        // Responder solo con la información del usuario y el token
-        return res.status(200).json({
-            status: 'success',
-            message: 'Correct login',
-            user: userFound,
-            token: token
-        });
-    } catch (error) {
-        // Manejo de errores
-        console.error("Error in login:", error);
-        return res.status(500).json({
-            status: 'error',
-            message: 'Server Error',
-            error: error.message
-        });
-    }
-};
+    };
 
 
 const profile = async (req, res) => {

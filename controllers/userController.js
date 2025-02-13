@@ -218,12 +218,16 @@ const profile = async (req, res) => {
 
         // Consultar publicaciones del usuario y poblar los comentarios con la información del usuario
         const publications = await Publication.find({ user: id })
-            .select('file likes likedBy comments createdAt')
+            .select('file likes likedBy comments createdAt user')
             .sort({ createdAt: -1 })
             .populate({
                 path: 'comments.user',
                 select: '-password' // Selecciona los campos que quieres traer del usuario
-            });
+            })
+            .populate({
+                path: 'user', // Poblar la información del usuario que hizo la publicación
+                select: '-password -otp' // Excluir campos sensibles
+            });;
 
         // Agregar _locals.userId y convertir publicaciones a objetos con virtuals
         const userId = req.user.id;

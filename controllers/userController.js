@@ -218,7 +218,7 @@ const profile = async (req, res) => {
 
         // Consultar publicaciones del usuario y poblar los comentarios con la información del usuario
         const publications = await Publication.find({ user: id })
-            .select('file likes likedBy comments createdAt user')
+            .select('file likes likedBy comments createdAt user watchPublication')
             .sort({ createdAt: -1 })
             .populate({
                 path: 'comments.user',

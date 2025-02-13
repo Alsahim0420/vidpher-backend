@@ -50,7 +50,7 @@ const preferencesById = async (req, res) => {
         const userId = req.user.id;
 
         // Buscar las preferencias del usuario en la base de datos
-        const preferences = await Preferences.findOne({ user: userId }).populate('user', 'name email'); // Usamos populate para traer datos adicionales del usuario
+        const preferences = await Preferences.findOne({ user: userId }).populate('user', '-password'); // Usamos populate para traer datos adicionales del usuario
 
         // Validar si no se encuentran preferencias para el usuario
         if (!preferences) {

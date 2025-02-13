@@ -30,7 +30,6 @@ const save = async (req, res) => {
         return res.status(201).send({
             status: 'success',
             message: 'Preferencias guardadas con éxito.',
-            preferences: newPreferencesEntry
         });
 
     } catch (err) {
@@ -50,7 +49,7 @@ const preferencesById = async (req, res) => {
         const userId = req.user.id;
 
         // Buscar las preferencias del usuario en la base de datos
-        const preferences = await Preferences.findOne({ user: userId }).populate('user', '-password'); // Usamos populate para traer datos adicionales del usuario
+        const preferences = await Preferences.findOne({ user: userId }).select('-user'); // Usamos populate para traer datos adicionales del usuario
 
         // Validar si no se encuentran preferencias para el usuario
         if (!preferences) {
@@ -64,7 +63,7 @@ const preferencesById = async (req, res) => {
         return res.status(200).send({
             status: 'success',
             message: 'Successfully obtained preferences.',
-            preferences
+            data: preferences,
         });
     } catch (err) {
         // Manejo de errores

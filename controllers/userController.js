@@ -9,6 +9,7 @@ const cloudinary = require('../config/cloudinary-config');
 
 //Importar modulos
 const user = require('../models/user');
+const SavedPublication = require('../models/savedPublication');
 
 //Importar servicios
 const jwt = require('../services/jwt');
@@ -121,87 +122,85 @@ const register = async (req, res) => {
 
 
 
-    const login = async (req, res) => {
-        // Recoger los parámetros
-        const { identifier, password } = req.body;
+const login = async (req, res) => {
+    // Recoger los parámetros
+    const { identifier, password } = req.body;
 
-        // Validar los datos recibidos
-        if (!identifier || !password) {
+    // Validar los datos recibidos
+    if (!identifier || !password) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'Identifier and password are required'
+        });
+    }
+
+    try {
+        // Buscar el usuario en la base de datos por username, email o name
+        const userFound = await user
+            .findOne({
+                $or: [
+                    { username: identifier },
+                    { email: identifier },
+                    { name: identifier }
+                ]
+            })
+            .select('username email password role image name bio');
+
+        // Si el usuario no existe
+        if (!userFound) {
             return res.status(400).json({
                 status: 'error',
-                message: 'Identifier and password are required'
+                message: 'The user does not exist'
             });
         }
 
-        try {
-            // Buscar el usuario en la base de datos por username, email o name
-            const userFound = await user
-                .findOne({
-                    $or: [
-                        { username: identifier },
-                        { email: identifier },
-                        { name: identifier }
-                    ]
-                })
-                .select('username email password role image name bio');
-
-            // Si el usuario no existe
-            if (!userFound) {
-                return res.status(400).json({
-                    status: 'error',
-                    message: 'The user does not exist'
-                });
-            }
-
-            if (!userFound.password) {
-                return res.status(500).json({
-                    status: 'error',
-                    message: 'Password field is missing for this user'
-                });
-            }
-
-            // Comprobar la contraseña con bcrypt
-            const isPasswordValid = bcrypt.compareSync(password, userFound.password);
-
-            if (!isPasswordValid) {
-                return res.status(400).json({
-                    status: 'error',
-                    message: 'Incorrect password'
-                });
-            }
-
-            // Generar el token
-            const token = jwt.createToken(userFound);
-
-            // Responder solo con la información del usuario y el token
-            return res.status(200).json({
-                status: 'success',
-                message: 'Correct login',
-                user: userFound,
-                token: token
-            });
-        } catch (error) {
-            // Manejo de errores
-            console.error("Error in login:", error);
+        if (!userFound.password) {
             return res.status(500).json({
                 status: 'error',
-                message: 'Server Error',
-                error: error.message
+                message: 'Password field is missing for this user'
             });
         }
-    };
+
+        // Comprobar la contraseña con bcrypt
+        const isPasswordValid = bcrypt.compareSync(password, userFound.password);
+
+        if (!isPasswordValid) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Incorrect password'
+            });
+        }
+
+        // Generar el token
+        const token = jwt.createToken(userFound);
+
+        // Responder solo con la información del usuario y el token
+        return res.status(200).json({
+            status: 'success',
+            message: 'Correct login',
+            user: userFound,
+            token: token
+        });
+    } catch (error) {
+        // Manejo de errores
+        console.error("Error in login:", error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Server Error',
+            error: error.message
+        });
+    }
+};
 
 
 const profile = async (req, res) => {
     try {
-        // Recibir el parámetro
         const id = req.params.id;
 
-        // Buscar al usuario por ID
+        // Buscar al usuario por ID y obtener su tipo
         const userFound = await user.findById(id)
             .select({ password: 0, otp: 0 });
 
-        // Validar si el usuario no existe
         if (!userFound) {
             return res.status(404).send({
                 status: 'error',
@@ -209,35 +208,38 @@ const profile = async (req, res) => {
             });
         }
 
-        // Información del seguimiento
         const followInfo = await followServices.followThisUser(req.user.id, id);
-
-        // Consultar contadores relacionados al usuario
         const following = await Follow.countDocuments({ user: id });
         const followed = await Follow.countDocuments({ followed: id });
         const publicationsCount = await Publication.countDocuments({ user: id });
 
-        // Consultar publicaciones del usuario y poblar los comentarios con la información del usuario
-        const publications = await Publication.find({ user: id })
-            .select('file likes likedBy comments createdAt user watchPublication')
-            .sort({ createdAt: -1 })
-            .populate({
-                path: 'comments.user',
-                select: '-password' // Selecciona los campos que quieres traer del usuario
-            })
-            .populate({
-                path: 'user', // Poblar la información del usuario que hizo la publicación
-                select: '-password -otp' // Excluir campos sensibles
-            });;
+        let publications = [];
 
-        // Agregar _locals.userId y convertir publicaciones a objetos con virtuals
+        if (userFound.role === 2) { 
+            publications = await Publication.find({ user: id })
+                .select('file likes likedBy comments createdAt user watchPublication')
+                .sort({ createdAt: -1 })
+                .populate({
+                    path: 'comments.user',
+                    select: '-password'
+                })
+                .populate({
+                    path: 'user',
+                    select: '-password -otp'
+                });
+        } else if (userFound.role === 3) {
+            const savedPublications = await SavedPublication.find({ user: id })
+                .populate({ path: 'publication', populate: { path: 'user', select: '-password -otp' } });
+
+            publications = savedPublications.map(saved => saved.publication);
+        }
+
         const userId = req.user.id;
         const publicationsWithLikes = publications.map(publication => {
             publication._locals = { userId };
-            return publication.toObject({ virtuals: true }); // Incluye isLiked
+            return publication.toObject({ virtuals: true });
         });
 
-        // Devolver el resultado
         return res.status(200).send({
             status: 'success',
             user: userFound,
@@ -246,11 +248,10 @@ const profile = async (req, res) => {
                 followed,
                 publications: publicationsCount
             },
-            publications: publicationsWithLikes
+            publications: publicationsWithLikes 
         });
 
     } catch (err) {
-        // Manejo de errores
         return res.status(500).send({
             status: 'error',
             message: 'Query Error',

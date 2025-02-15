@@ -1,10 +1,10 @@
+require('dotenv').config();
 const admin = require("firebase-admin");
-const path = require("path");
 
-// Ruta al archivo de credenciales JSON
-const serviceAccount = require(path.join(__dirname, "../../config/firebaseServiceAccountKey.json"));
+// Decodificar la variable de entorno en JSON
+const serviceAccount = JSON.parse(Buffer.from(process.env.FIREBASE_CREDENTIALS, 'base64').toString('utf-8'));
 
-// Inicializar Firebase Admin
+// Inicializar Firebase Admin SDK
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
 });

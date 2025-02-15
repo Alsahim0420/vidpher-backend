@@ -10,6 +10,7 @@
 
 ### Firebase Credentials ###
 config/firebaseServiceAccountKey.json
+config/service-account.json
 
 ### Node ###
 # Logs

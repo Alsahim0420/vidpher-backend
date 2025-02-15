@@ -31,7 +31,8 @@ const UserSchema = new Schema({
         default:Date.now
     },
     otp:String,
-    bio:String
+    bio:String,
+    fcmToken: { type: String },
 });
 
 UserSchema.plugin(mongoosePaginate);

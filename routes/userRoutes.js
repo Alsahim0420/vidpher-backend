@@ -24,6 +24,8 @@ router.get("/counters/:id", check.auth, userController.counters);
 router.post('/request/password/reset', userController.requestPasswordReset);
 router.post('/reset/password', userController.resetPassword);
 
+router.post("/update/fcm/token", check.auth, userController.updateFcmToken);
+
 //Dashboard
 router.get('/users/count/by/role', check.auth, userController.countUsersByRole);
 

@@ -144,7 +144,7 @@ const login = async (req, res) => {
                     { name: identifier }
                 ]
             })
-            .select('username email password role image name bio');
+            .select('username email password role image name bio fcmToken');
 
         // Si el usuario no existe
         if (!userFound) {
@@ -601,6 +601,24 @@ const countUsersByRole = async (req, res) => {
     }
 };
 
+const updateFcmToken = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { fcmToken } = req.body;
+
+        if (!fcmToken) {
+            return res.status(400).json({ message: "FCM token is required" });
+        }
+
+        await user.findByIdAndUpdate(userId, { fcmToken });
+
+        res.status(200).json({ message: "FCM token updated successfully" });
+    } catch (error) {
+        console.error("Error updating FCM token:", error);
+        res.status(500).json({ message: "Server Error" });
+    }
+};
+
 
 
 //Expoortar las acciones
@@ -617,5 +635,6 @@ module.exports = {
     requestPasswordReset,
     resetPassword,
     updateAvatar,
-    countUsersByRole
+    countUsersByRole,
+    updateFcmToken, 
 };

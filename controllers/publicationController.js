@@ -5,6 +5,7 @@ const cloudinary = require('../config/cloudinary-config');
 const Suggestion = require('../models/suggestions');
 const User = require("../models/user");
 const userController = require("./userController");
+const sendNotification = require("../utils/notifications/notificationService");
 
 
 
@@ -314,40 +315,40 @@ const feed = async (req, res) => {
 };
 
 
+
 const likePublication = async (req, res) => {
     try {
         const { publicationId } = req.params;
-        const userId = req.user.id; // ID del usuario que está dando like
+        const userId = req.user.id;
 
-        // Buscar la publicación
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        // Buscar la publicación con datos del usuario y comentarios
         const publication = await Publication.findById(publicationId)
-        .populate('user', 'username email name role image')
-        .populate('comments.user', 'username email name role image'); // Asegúrate de que 'user' es el campo que referencia al usuario en tu modelo de Publicación
+            .populate('user', 'username email name role image fcmToken')
+            .populate('comments.user', 'username email name role image');
 
         if (!publication) {
             return res.status(404).json({ message: "Post not found" });
         }
 
-        // Verificar si el usuario ya dio like
         const userIndex = publication.likedBy.indexOf(userId);
+        const isLiking = userIndex === -1;
 
-        if (userIndex === -1) {
-            // Si el usuario no ha dado like, agregarlo a la lista
+        // Agregar o quitar el like
+        if (isLiking) {
             publication.likedBy.push(userId);
-            publication.likes += 1; // Incrementar el contador de likes
+            publication.likes += 1;
         } else {
-            // Si el usuario ya dio like, eliminarlo de la lista
             publication.likedBy.splice(userIndex, 1);
-            publication.likes -= 1; // Decrementar el contador de likes
+            publication.likes -= 1;
         }
 
-        // Guardar la publicación actualizada
         await publication.save();
 
-        // Pasar el ID del usuario al campo virtual
-        publication._locals = { userId }; // Esto permite que el campo virtual isLied funcione
-
-        // Verificar si la publicación llegó a 40 likes
+        // ✅ Verificar si la publicación llegó a 40 likes y sugerirla si es necesario
         if (publication.likes >= 40 && !publication.suggested) {
             console.log("The post has reached 40 likes and has not yet been suggested.");
 
@@ -380,22 +381,35 @@ const likePublication = async (req, res) => {
             console.log("The post already has a suggestion.");
         }
 
-        // Obtener la información completa del usuario que dio like
-        const user = await User.findById(userId).select('-password'); // Excluir la contraseña por seguridad
+        // ✅ Enviar notificación solo si la publicación pertenece a otro usuario
+        if (publication.user._id.toString() !== userId) {
+            const user = await User.findById(userId).select("username");
+            const fcmToken = publication.user.fcmToken;
 
-        // Respuesta con el estado de isLiked dentro de la publicación y la información del usuario
-        res.status(200).json({
-            message: "Like toggled successfully",
-            publication: {
-                ...publication.toObject(), // Convertir el documento de Mongoose a un objeto plano
-                isLiked: publication.likedBy.includes(userId), // Calcular isLied
+            if (fcmToken) {
+                const actionMessage = isLiking ? "liked" : "unliked";
+                const notificationTitle = isLiking ? "New Like! ❤" : "Someone unliked your post 😢";
+                const notificationBody = `${user.username} has ${actionMessage} your post.`;
+
+                await sendNotification(fcmToken, notificationTitle, notificationBody, { postId: publicationId });
             }
+        }
+
+        const publicationObject = publication.toObject({ virtuals: true });
+        publicationObject.isLiked = publication.likedBy.includes(userId); // Aquí calculamos isLiked manualmente
+        publicationObject.userId = userId;
+
+
+        res.status(200).json({
+            message: `Post successfully ${isLiking ? "liked" : "unliked"}`,
+            publication: publicationObject,
         });
     } catch (error) {
         console.error("Error when liking:", error);
         res.status(500).json({ message: "Server Error" });
     }
 };
+
 
 
 

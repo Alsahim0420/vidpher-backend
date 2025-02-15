@@ -44,9 +44,9 @@ const PublicationSchema = Schema({
 
 
 PublicationSchema.virtual('isLiked').get(function () {
-    // this se refiere al documento actual (publicación)
-    return this.likedBy.includes(this._locals.userId); // Verifica si el usuario actual dio like
-});
+    if (!this.userId) return false; 
+    return this.likedBy.includes(this.userId);
+  });
 
 // Configurar para que las propiedades virtuales se incluyan en toJSON y toObject
 PublicationSchema.set('toJSON', { virtuals: true });

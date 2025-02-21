@@ -631,7 +631,8 @@ const searchAll = async (req, res) => {
         }
 
         // Buscar usuarios por username o email
-        const users = await User.find({
+        const users = 
+        await user.find({
             $or: [
                 { username: new RegExp(query, "i") }, // Búsqueda insensible a mayúsculas
                 { email: new RegExp(query, "i") }

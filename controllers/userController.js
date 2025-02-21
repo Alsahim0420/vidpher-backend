@@ -641,7 +641,7 @@ const searchAll = async (req, res) => {
 
         // Buscar preferencias
         const preferences = await Preferences.find({
-            preference: new RegExp(query, "i")
+            preferences: new RegExp(query, "i")
         }).populate({
             path: "user",
             select: "-password" // Excluir la contraseña del usuario en preferencias

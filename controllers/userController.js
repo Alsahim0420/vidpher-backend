@@ -632,7 +632,7 @@ const searchAll = async (req, res) => {
 
         // Realizar búsquedas en paralelo
         const [users, publications, preferences, suggestions] = await Promise.all([
-            User.find({
+            user.find({
                 $or: [
                     { username: new RegExp(query, "i") },
                     { email: new RegExp(query, "i") }
@@ -642,7 +642,7 @@ const searchAll = async (req, res) => {
             Publication.find({
                 $or: [
                     { title: new RegExp(query, "i") },
-                    { content: new RegExp(query, "i") }
+                    { contents: new RegExp(query, "i") }
                 ]
             })
             .populate({

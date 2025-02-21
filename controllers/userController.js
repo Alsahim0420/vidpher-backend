@@ -630,57 +630,54 @@ const searchAll = async (req, res) => {
             return res.status(400).json({ message: "El parámetro de búsqueda es obligatorio." });
         }
 
-        // Realizar búsquedas en paralelo
-        const [users, publications, preferences, suggestions] = await Promise.all([
-            user.find({
-                $or: [
-                    { username: new RegExp(query, "i") },
-                    { email: new RegExp(query, "i") }
-                ]
-            }).select("-password"), // Excluir la contraseña
+        // Buscar usuarios por username o email
+        const users = await User.find({
+            $or: [
+                { username: new RegExp(query, "i") }, // Búsqueda insensible a mayúsculas
+                { email: new RegExp(query, "i") }
+            ]
+        }).select("-password"); // Excluir la contraseña
 
-            Publication.find({
-                $or: [
-                    { title: new RegExp(query, "i") },
-                    { contents: new RegExp(query, "i") }
-                ]
-            })
-            .populate({
-                path: "user",  // Usuario que hizo la publicación
-                select: "-password" // Excluir la contraseña
-            })
-            .populate({
-                path: "comments.user",  // Usuarios que hicieron comentarios
-                select: "-password" // Excluir la contraseña
-            }),
+        // Buscar preferencias
+        const preferences = await Preferences.find({
+            preference: new RegExp(query, "i")
+        }).populate({
+            path: "user",
+            select: "-password" // Excluir la contraseña del usuario en preferencias
+        });
 
-            Preferences.find({
-                preference: new RegExp(query, "i")
-            }),
+        // Crear un mapa para eliminar duplicados de usuarios
+        const uniqueUsers = new Map();
 
-            Suggestions.find({
-                suggestion: new RegExp(query, "i")
-            })
-        ]);
+        // Agregar los usuarios encontrados directamente
+        users.forEach(user => uniqueUsers.set(user._id.toString(), user));
 
-        // Verificar si todas las búsquedas están vacías
-        if (users.length === 0 && publications.length === 0 && preferences.length === 0 && suggestions.length === 0) {
-            return res.status(200).json({ 
+        // Agregar los usuarios encontrados en preferencias (evitando duplicados)
+        preferences.forEach(pref => {
+            if (pref.user) {
+                uniqueUsers.set(pref.user._id.toString(), pref.user);
+            }
+        });
+
+        // Convertir el mapa en un array
+        const uniqueUsersArray = Array.from(uniqueUsers.values());
+
+        // Verificar si la búsqueda no arrojó resultados
+        if (uniqueUsersArray.length === 0 && preferences.length === 0) {
+            return res.status(200).json({
                 status: "success",
-                message: "Consultation carried out successfully", 
-                data: [] 
+                message: "Consultation carried out successfully.",
+                data: []
             });
         }
 
-        // Enviar respuesta con los datos organizados
+        // Enviar la respuesta con usuarios únicos
         res.status(200).json({
             status: "success",
-            message: "Búsqueda exitosa",
+            message: "Successful search",
             data: {
-                users,
-                publications,
-                preferences,
-                suggestions
+                users: uniqueUsersArray,
+                preferences
             }
         });
 
@@ -688,7 +685,6 @@ const searchAll = async (req, res) => {
         res.status(500).json({ message: "Error en la búsqueda", error: error.message });
     }
 };
-
 
 //Expoortar las acciones
 module.exports = {

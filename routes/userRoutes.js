@@ -29,5 +29,8 @@ router.post("/update/fcm/token", check.auth, userController.updateFcmToken);
 //Dashboard
 router.get('/users/count/by/role', check.auth, userController.countUsersByRole);
 
+// Ruta para buscar
+router.get("/search", check.auth, userController.searchAll);
+
 // Exportar el módulo de rutas
 module.exports = router;

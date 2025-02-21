@@ -1,7 +1,5 @@
 // Importar dependencias
 const bcrypt = require("bcryptjs");
-const Follow = require("../models/follow")
-const Publication = require("../models/publication")
 const fs = require('fs');
 const path = require('path');
 const cloudinary = require('../config/cloudinary-config');
@@ -10,6 +8,10 @@ const cloudinary = require('../config/cloudinary-config');
 //Importar modulos
 const user = require('../models/user');
 const SavedPublication = require('../models/savedPublication');
+const Publication = require("../models/publication")
+const Follow = require("../models/follow")
+const Preferences = require('../models/preferences');
+const Suggestions = require('../models/suggestions');
 
 //Importar servicios
 const jwt = require('../services/jwt');
@@ -620,6 +622,58 @@ const updateFcmToken = async (req, res) => {
 };
 
 
+const searchAll = async (req, res) => {
+    try {
+        const { query } = req.query;
+
+        if (!query) {
+            return res.status(400).json({ message: "El parámetro de búsqueda es obligatorio." });
+        }
+
+        // Realizar búsquedas en paralelo
+        const [users, publications, preferences, suggestions] = await Promise.all([
+            user.find({
+                $or: [
+                    { username: new RegExp(query, "i") },
+                    { email: new RegExp(query, "i") }
+                ]
+            }),
+            Publication.find({
+                $or: [
+                    { title: new RegExp(query, "i") },
+                    { content: new RegExp(query, "i") }
+                ]
+            }),
+            Preferences.find({
+                preference: new RegExp(query, "i")
+            }),
+            Suggestions.find({
+                suggestion: new RegExp(query, "i")
+            })
+        ]);
+
+        // Verificar si todas las búsquedas están vacías
+        if (users.length === 0 && publications.length === 0 && preferences.length === 0 && suggestions.length === 0) {
+            return res.status(200).json({ message: "Consulta realizada con éxito, pero no se encontraron resultados.", data: [] });
+        }
+
+        // Enviar respuesta con los datos organizados
+        res.status(200).json({
+            message: "Búsqueda exitosa",
+            data: {
+                users,
+                publications,
+                preferences,
+                suggestions
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: "Error en la búsqueda", error: error.message });
+    }
+};
+
+
 
 //Expoortar las acciones
 module.exports = {
@@ -636,5 +690,6 @@ module.exports = {
     resetPassword,
     updateAvatar,
     countUsersByRole,
-    updateFcmToken, 
+    updateFcmToken,
+    searchAll, 
 };

@@ -73,7 +73,6 @@ const save = async (req, res) => {
         return res.status(201).send({
             status: 'success',
             message: 'Successfully created record in the agenda.',
-            agenda: newAgendaEntry
         });
 
     } catch (err) {
@@ -106,15 +105,19 @@ const byDate = async (req, res) => {
             });
         }
 
-        // Buscar todas las reuniones agendadas en la fecha especificada
-        const meetings = await Agenda.find({ user: userId, date });
+        // Buscar todas las reuniones agendadas en la fecha especificada, incluyendo la info del usuario
+        const meetings = await Agenda.find({ user: userId, date })
+            .populate({
+                path: "user",
+                select: "-password" // Excluir la contraseña
+            });
 
         // Validar si no hay reuniones en la fecha indicada
         if (meetings.length === 0) {
             return res.status(200).send({
-                "status": "success",
-                "message": "Meetings retrieved successfully.",
-                "agenda": []
+                status: "success",
+                message: "Meetings retrieved successfully.",
+                agenda: []
             });
         }
 

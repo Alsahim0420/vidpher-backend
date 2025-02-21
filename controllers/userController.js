@@ -632,21 +632,32 @@ const searchAll = async (req, res) => {
 
         // Realizar búsquedas en paralelo
         const [users, publications, preferences, suggestions] = await Promise.all([
-            user.find({
+            User.find({
                 $or: [
                     { username: new RegExp(query, "i") },
                     { email: new RegExp(query, "i") }
                 ]
-            }),
+            }).select("-password"), // Excluir la contraseña
+
             Publication.find({
                 $or: [
                     { title: new RegExp(query, "i") },
                     { content: new RegExp(query, "i") }
                 ]
+            })
+            .populate({
+                path: "user",  // Usuario que hizo la publicación
+                select: "-password" // Excluir la contraseña
+            })
+            .populate({
+                path: "comments.user",  // Usuarios que hicieron comentarios
+                select: "-password" // Excluir la contraseña
             }),
+
             Preferences.find({
                 preference: new RegExp(query, "i")
             }),
+
             Suggestions.find({
                 suggestion: new RegExp(query, "i")
             })
@@ -654,11 +665,16 @@ const searchAll = async (req, res) => {
 
         // Verificar si todas las búsquedas están vacías
         if (users.length === 0 && publications.length === 0 && preferences.length === 0 && suggestions.length === 0) {
-            return res.status(200).json({ message: "Consulta realizada con éxito, pero no se encontraron resultados.", data: [] });
+            return res.status(200).json({ 
+                status: "success",
+                message: "Consultation carried out successfully", 
+                data: [] 
+            });
         }
 
         // Enviar respuesta con los datos organizados
         res.status(200).json({
+            status: "success",
             message: "Búsqueda exitosa",
             data: {
                 users,
@@ -672,7 +688,6 @@ const searchAll = async (req, res) => {
         res.status(500).json({ message: "Error en la búsqueda", error: error.message });
     }
 };
-
 
 
 //Expoortar las acciones

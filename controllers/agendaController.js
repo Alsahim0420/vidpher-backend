@@ -106,11 +106,7 @@ const byDate = async (req, res) => {
         }
 
         // Buscar todas las reuniones agendadas en la fecha especificada, incluyendo la info del usuario
-        const meetings = await Agenda.find({ user: userId, date })
-            .populate({
-                path: "user",
-                select: "-password" // Excluir la contraseña
-            });
+        const meetings = await Agenda.find({ user: userId, date });
 
         // Validar si no hay reuniones en la fecha indicada
         if (meetings.length === 0) {

@@ -69,13 +69,9 @@ const save = async (req, res) => {
 // Controlador para obtener todas las reuniones agendadas por fecha
 const byDate = async (req, res) => {
     try {
-        // Obtener el id del usuario desde el token
         const userId = req.user.id;
-
-        // Obtener la fecha desde los parámetros de la solicitud
         const { date } = req.params;
 
-        // Validar que se haya proporcionado una fecha
         if (!date) {
             return res.status(400).send({
                 status: 'error',
@@ -83,10 +79,8 @@ const byDate = async (req, res) => {
             });
         }
 
-        // Buscar todas las reuniones agendadas en la fecha especificada, incluyendo la info del usuario
         const meetings = await Agenda.find({ user: userId, date });
 
-        // Validar si no hay reuniones en la fecha indicada
         if (meetings.length === 0) {
             return res.status(200).send({
                 status: "success",
@@ -95,15 +89,19 @@ const byDate = async (req, res) => {
             });
         }
 
-        // Respuesta con todas las reuniones de la fecha dada
+        // Formatear las fechas antes de enviarlas
+        const formattedMeetings = meetings.map(meeting => ({
+            ...meeting.toObject(),
+            formattedTime: moment(meeting.date).format('hh:mm A') // Ejemplo: 03:30 PM
+        }));
+
         return res.status(200).send({
             status: 'success',
             message: 'Meetings retrieved successfully.',
-            agenda: meetings
+            agenda: formattedMeetings
         });
 
     } catch (err) {
-        // Manejo de errores
         return res.status(500).send({
             status: 'error',
             message: 'Error while retrieving meetings.',

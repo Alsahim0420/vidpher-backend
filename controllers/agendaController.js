@@ -28,8 +28,8 @@ const save = async (req, res) => {
             });
         }
 
-        // ** Formatear `time` a formato 12 horas con AM/PM **
-        const formattedTime = convertTo12HourFormat(time);
+        // Convertir `time` a formato 12 horas con AM/PM
+        time = convertTo12HourFormat(time);
 
         // Crear un nuevo registro en la agenda
         const newAgendaEntry = new Agenda({
@@ -37,7 +37,7 @@ const save = async (req, res) => {
             location,
             title,
             duration: durationInHours, 
-            time: formattedTime, // Guardar el tiempo en formato 12h con AM/PM
+            time, // Ahora `time` ya tiene el formato correcto
             date
         });
 
@@ -66,10 +66,6 @@ const convertTo12HourFormat = (time) => {
     const formattedHour = hour % 12 || 12; // Convierte 0 a 12 para formato 12h
     return `${formattedHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
 };
-
-
-
-
 
 
 // Controlador para obtener todas las reuniones agendadas por fecha

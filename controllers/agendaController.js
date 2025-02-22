@@ -1,5 +1,4 @@
 const Agenda = require('../models/agenda');
-const convertTo24HourFormat = require('../utils/timeUtils');
 
 const moment = require('moment');
 
@@ -28,16 +27,21 @@ const save = async (req, res) => {
             });
         }
 
-        // Convertir `time` a formato 12 horas con AM/PM
-        time = convertTo12HourFormat(time);
+        // Validar el formato de `time`, asegurando que tenga "AM" o "PM"
+        if (!/^\d{1,2}:\d{2} (AM|PM)$/.test(time)) {
+            return res.status(400).send({
+                status: 'error',
+                message: 'Time format must be in HH:MM AM/PM format.'
+            });
+        }
 
-        // Crear un nuevo registro en la agenda
+        // Crear un nuevo registro en la agenda sin modificar `time`
         const newAgendaEntry = new Agenda({
             user: userId,
             location,
             title,
             duration: durationInHours, 
-            time, // Ahora `time` ya tiene el formato correcto
+            time, // Se guarda tal como lo envía el usuario
             date
         });
 
@@ -59,13 +63,6 @@ const save = async (req, res) => {
     }
 };
 
-// Función para convertir el tiempo de 24h a 12h con AM/PM
-const convertTo12HourFormat = (time) => {
-    const [hour, minute] = time.split(':').map(Number);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const formattedHour = hour % 12 || 12; // Convierte 0 a 12 para formato 12h
-    return `${formattedHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
-};
 
 
 // Controlador para obtener todas las reuniones agendadas por fecha

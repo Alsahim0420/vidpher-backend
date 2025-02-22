@@ -34,28 +34,6 @@ const save = async (req, res) => {
         const newStartTime = hours * 60 + minutes;
         const newEndTime = newStartTime + durationInHours * 60;
 
-        // Buscar reuniones en la misma fecha para el usuario
-        const existingMeetings = await Agenda.find({ user: userId, date });
-
-        // Verificar si hay conflicto de horarios
-        for (const meeting of existingMeetings) {
-            const existingFormattedTime = convertTo24HourFormat(meeting.time);
-            const [existingHours, existingMinutes] = existingFormattedTime.split(':').map(Number);
-            const existingStartTime = existingHours * 60 + existingMinutes;
-            const existingEndTime = existingStartTime + meeting.duration * 60;
-
-            if (
-                (newStartTime >= existingStartTime && newStartTime < existingEndTime) || // Comienza dentro de otra reunión
-                (newEndTime > existingStartTime && newEndTime <= existingEndTime) || // Termina dentro de otra reunión
-                (newStartTime <= existingStartTime && newEndTime >= existingEndTime) // Contiene otra reunión
-            ) {
-                return res.status(400).send({
-                    status: 'error',
-                    message: 'Schedule conflict: You already have a meeting at this time.'
-                });
-            }
-        }
-
         // Crear un nuevo registro en la agenda
         const newAgendaEntry = new Agenda({
             user: userId,
@@ -76,9 +54,9 @@ const save = async (req, res) => {
         });
 
     } catch (err) {
-        return res.status(500).send({
+        return res.status(400).send({
             status: 'error',
-            message: 'Error al crear el registro en la agenda.',
+            message: 'Error createing event.',
             error: err.message
         });
     }

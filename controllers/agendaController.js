@@ -28,13 +28,8 @@ const save = async (req, res) => {
             });
         }
 
-        // ** Formatear `time` a formato 24 horas (sin AM/PM) **
-        const formattedTime = convertTo24HourFormat(time);
-
-        // Convertir `time` a minutos para hacer la validación
-        const [hours, minutes] = formattedTime.split(':').map(Number);
-        const newStartTime = hours * 60 + minutes;
-        const newEndTime = newStartTime + durationInHours * 60;
+        // ** Formatear `time` a formato 12 horas con AM/PM **
+        const formattedTime = convertTo12HourFormat(time);
 
         // Crear un nuevo registro en la agenda
         const newAgendaEntry = new Agenda({
@@ -42,7 +37,7 @@ const save = async (req, res) => {
             location,
             title,
             duration: durationInHours, 
-            time: formattedTime, // Guardar el tiempo en formato 24h
+            time: formattedTime, // Guardar el tiempo en formato 12h con AM/PM
             date
         });
 
@@ -58,11 +53,20 @@ const save = async (req, res) => {
     } catch (err) {
         return res.status(400).send({
             status: 'error',
-            message: 'Error createing event.',
+            message: 'Error creating event.',
             error: err.message
         });
     }
 };
+
+// Función para convertir el tiempo de 24h a 12h con AM/PM
+const convertTo12HourFormat = (time) => {
+    const [hour, minute] = time.split(':').map(Number);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const formattedHour = hour % 12 || 12; // Convierte 0 a 12 para formato 12h
+    return `${formattedHour}:${minute.toString().padStart(2, '0')} ${ampm}`;
+};
+
 
 
 

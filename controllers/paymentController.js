@@ -37,19 +37,21 @@ const createPayment = async (req, res) => {
             amount: paymentIntent.amount,
             currency: paymentIntent.currency,
             status: paymentIntent.status,
-            plan: planNumber, // Guardamos el plan como número
-            paymentUrl
+            plan: planNumber,
+            paymentUrl // 🔹 Ahora se almacena en MongoDB
         });
 
         await payment.save();
 
-        res.status(201).json({ message: "Successful payment", paymentUrl, payment });
+        res.status(201).json({ 
+            message: "Successful payment", 
+            payment // 🔹 Ahora `paymentUrl` está dentro de `payment`
+        });
+
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
-
-
 
 const myPayments = async (req, res) => {
     try {

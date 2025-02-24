@@ -35,8 +35,9 @@ const createPayment = async (req, res) => {
             amount: paymentIntent.amount,
             currency: paymentIntent.currency,
             status: "pending",
-            plan: planNumber
-        });
+            plan: planNumber,
+            paymentUrl: paymentUrl // Agregar paymentUrl al objeto antes de guardar
+        });        
 
         await payment.save();
 

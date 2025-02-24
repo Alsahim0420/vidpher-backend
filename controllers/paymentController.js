@@ -3,32 +3,51 @@ const Payment = require("../models/payment");
 
 const createPayment = async (req, res) => {
     try {
-        const { amount, currency, paymentMethodId } = req.body;
-        const userId = req.user.id; // Extraído desde el token (Asegúrate de tener middleware)
+        const { amount, currency, paymentMethodId, plan } = req.body;
+        const userId = req.user.id; // Extraído desde el token
 
-        // 1️⃣ Crear un PaymentIntent en Stripe
+        // Validar que el plan sea un número
+        if (typeof plan !== 'number') {
+            return res.status(400).json({ error: "El plan debe ser un número" });
+        }
+
+        // Seleccionar la URL de Stripe según el plan
+        let paymentUrl;
+        if (plan === 1) {
+            paymentUrl = "https://buy.stripe.com/test_9AQ6oY9Ao3xDcyA6oo";
+        } else if (plan === 2) {
+            paymentUrl = "https://buy.stripe.com/test_dR6aFe13S6JP8ik8wx";
+        } else {
+            return res.status(400).json({ error: "Plan no válido" });
+        }
+
+        // Crear un PaymentIntent en Stripe
         const paymentIntent = await createPaymentIntent(amount, currency, paymentMethodId);
 
         if (!paymentIntent) {
             return res.status(400).json({ error: "Payment couldn't be created in Stripe" });
         }
 
-        // 2️⃣ Guardar el pago en MongoDB
+        // Guardar el pago en MongoDB
         const payment = new Payment({
             userId,
             paymentIntentId: paymentIntent.id,
             amount: paymentIntent.amount,
             currency: paymentIntent.currency,
-            status: paymentIntent.status
+            status: paymentIntent.status,
+            plan, // Guardamos el plan como número
+            paymentUrl
         });
 
         await payment.save();
 
-        res.status(201).json({ message: "Successful payment", payment });
+        res.status(201).json({ message: "Successful payment", paymentUrl, payment });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
+
 
 const myPayments = async (req, res) => {
     try {

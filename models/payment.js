@@ -33,7 +33,11 @@ const PaymentSchema = Schema({
     { 
         type: Date, 
         default: Date.now 
-    }
+    },
+    plan: 
+    { 
+        type: Number, 
+        required: true },
 });
 
 PaymentSchema.plugin(mongoosePaginate);

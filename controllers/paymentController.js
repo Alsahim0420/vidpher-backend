@@ -6,19 +6,12 @@ const createPayment = async (req, res) => {
         const { amount, currency, paymentMethodId, plan } = req.body;
         const userId = req.user.id; // Extraído desde el token
 
-        if (typeof plan !== "1" || plan !== "2") {
-            return res.status(400).json({ error: "El plan debe ser un número" });
-        }
-
-        console.log(plan);
-
-        const planNumber = Number(plan);
-
-        // Validar que el plan sea un número
-
-        if (isNaN(planNumber)) {
+        // Validar que el plan sea un número válido
+        if (!plan || isNaN(Number(plan))) {
             return res.status(400).json({ error: "El plan debe ser un número válido" });
         }
+
+        const planNumber = Number(plan);
 
         // Seleccionar la URL de Stripe según el plan
         let paymentUrl;
@@ -31,7 +24,7 @@ const createPayment = async (req, res) => {
         }
 
         // Crear un PaymentIntent en Stripe
-        const paymentIntent = await createPaymentIntent(amount, currency, paymentMethodId, planNumber);
+        const paymentIntent = await createPaymentIntent(amount, currency, paymentMethodId);
 
         if (!paymentIntent) {
             return res.status(400).json({ error: "Payment couldn't be created in Stripe" });
@@ -44,7 +37,7 @@ const createPayment = async (req, res) => {
             amount: paymentIntent.amount,
             currency: paymentIntent.currency,
             status: paymentIntent.status,
-            plan, // Guardamos el plan como número
+            plan: planNumber, // Guardamos el plan como número
             paymentUrl
         });
 

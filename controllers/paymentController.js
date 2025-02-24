@@ -30,7 +30,12 @@ const createPayment = async (req, res) => {
             return res.status(400).json({ error: "Payment couldn't be created in Stripe" });
         }
 
-        // Guardar el pago en MongoDB
+        // Verificar el estado del PaymentIntent
+        if (paymentIntent.status !== "succeeded") {
+            return res.status(400).json({ error: "Payment is not confirmed yet" });
+        }
+
+        // Guardar el pago en la base de datos solo si está confirmado
         const payment = new Payment({
             userId,
             paymentIntentId: paymentIntent.id,
@@ -38,20 +43,20 @@ const createPayment = async (req, res) => {
             currency: paymentIntent.currency,
             status: paymentIntent.status,
             plan: planNumber,
-            paymentUrl // 🔹 Ahora se almacena en MongoDB
+            paymentUrl 
         });
 
         await payment.save();
 
         res.status(201).json({ 
             message: "Successful payment", 
-            payment // 🔹 Ahora `paymentUrl` está dentro de `payment`
+            payment 
         });
-
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 const myPayments = async (req, res) => {
     try {

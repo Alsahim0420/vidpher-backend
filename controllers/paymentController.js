@@ -4,16 +4,14 @@ const Payment = require("../models/payment");
 const createPayment = async (req, res) => {
     try {
         const { amount, currency, paymentMethodId, plan } = req.body;
-        const userId = req.user.id; // Extraído desde el token
+        const userId = req.user.id;
 
-        // Validar que el plan sea un número válido
         if (!plan || isNaN(Number(plan))) {
             return res.status(400).json({ error: "El plan debe ser un número válido" });
         }
 
         const planNumber = Number(plan);
 
-        // Seleccionar la URL de Stripe según el plan
         let paymentUrl;
         if (planNumber === 1) {
             paymentUrl = "https://buy.stripe.com/test_9AQ6oY9Ao3xDcyA6oo";
@@ -27,31 +25,27 @@ const createPayment = async (req, res) => {
         const paymentIntent = await createPaymentIntent(amount, currency, paymentMethodId);
 
         if (!paymentIntent) {
-            return res.status(400).json({ error: "Payment couldn't be created in Stripe" });
+            return res.status(400).json({ error: "No se pudo crear el pago en Stripe" });
         }
 
-        // Verificar el estado del PaymentIntent
-        if (paymentIntent.status !== "succeeded") {
-            return res.status(400).json({ error: "Payment is not confirmed yet" });
-        }
-
-        // Guardar el pago en la base de datos solo si está confirmado
+        // Guardar el pago con estado "pendiente"
         const payment = new Payment({
             userId,
             paymentIntentId: paymentIntent.id,
             amount: paymentIntent.amount,
             currency: paymentIntent.currency,
-            status: paymentIntent.status,
-            plan: planNumber,
-            paymentUrl 
+            status: "pending",
+            plan: planNumber
         });
 
         await payment.save();
 
         res.status(201).json({ 
-            message: "Successful payment", 
-            payment 
+            message: "Pago iniciado", 
+            paymentUrl, 
+            paymentIntentId: paymentIntent.id
         });
+
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -99,8 +93,27 @@ const allPayments = async (req, res) => {
     }
 };
 
+const getPaymentStatus = async (req, res) => {
+    try {
+        const { paymentIntentId } = req.query;
+
+        const payment = await Payment.findOne({ paymentIntentId });
+
+        if (!payment) {
+            return res.status(404).json({ error: "Pago no encontrado" });
+        }
+
+        res.json({ status: payment.status });
+
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+
 module.exports = { 
     createPayment,
     myPayments,
-    allPayments
+    allPayments,
+    getPaymentStatus
 };

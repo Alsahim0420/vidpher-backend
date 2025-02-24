@@ -33,6 +33,7 @@ const preferenceRoutes = require('./routes/preferenceRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const savedPublicationRoutes = require('./routes/savedPublicationRoutes');
 const suggestionRoutes = require('./routes/suggestionRoutes');
+const stripeRoutes = require('./routes/stripeRoutes');
 
 
 app.use('/api/user', userRoutes);
@@ -44,6 +45,7 @@ app.use('/api/preference', preferenceRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/savedPublication', savedPublicationRoutes);
 app.use('/api/suggestion', suggestionRoutes);
+app.use('/api/stripe', stripeRoutes);
 
 //ruta de prueba
 app.get("/ruta-prueba", (req, res) => {

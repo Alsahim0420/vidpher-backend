@@ -6,12 +6,15 @@ const createPayment = async (req, res) => {
         const { amount, currency, paymentMethodId, plan } = req.body;
         const userId = req.user.id; // Extraído desde el token
 
+        if (typeof plan !== "1" || plan !== "2") {
+            return res.status(400).json({ error: "El plan debe ser un número" });
+        }
+
+        console.log(plan);
+
         const planNumber = Number(plan);
 
         // Validar que el plan sea un número
-        if (typeof planNumber !== "1" || planNumber !== "2") {
-            return res.status(400).json({ error: "El plan debe ser un número" });
-        }
 
         if (isNaN(planNumber)) {
             return res.status(400).json({ error: "El plan debe ser un número válido" });

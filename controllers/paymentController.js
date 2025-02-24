@@ -9,7 +9,7 @@ const createPayment = async (req, res) => {
         const planNumber = Number(plan);
 
         // Validar que el plan sea un número
-        if (typeof planNumber !== 1 || planNumber !== 2) {
+        if (typeof planNumber !== "1" || planNumber !== "2") {
             return res.status(400).json({ error: "El plan debe ser un número" });
         }
 

@@ -1,4 +1,5 @@
 const { createPaymentIntent } = require("../services/stripeService");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const Payment = require("../models/payment");
 
 const createPayment = async (req, res) => {
@@ -98,12 +99,23 @@ const getPaymentStatus = async (req, res) => {
     try {
         const { paymentIntentId } = req.query;
 
+        // Buscar el pago en la base de datos
         const payment = await Payment.findOne({ paymentIntentId });
 
         if (!payment) {
             return res.status(404).json({ error: "Pago no encontrado" });
         }
 
+        // Consultar el estado real del pago en Stripe
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+
+        // Si el pago en Stripe es "succeeded", actualizar en la base de datos
+        if (paymentIntent.status === "succeeded" && payment.status !== "success") {
+            payment.status = "success";
+            await payment.save();
+        }
+
+        // Responder con el estado actualizado
         res.json({ status: payment.status });
 
     } catch (error) {

@@ -5,7 +5,7 @@ const Payment = require("../models/payment");
 const createPayment = async (req, res) => {
     try {
         const { amount, currency, paymentMethodId, plan } = req.body;
-        const userId = req.user.id; // Extraído desde el token
+        const userId = req.user.id;
 
         if (!plan || isNaN(Number(plan))) {
             return res.status(400).json({ error: "El plan debe ser un número válido" });
@@ -23,26 +23,38 @@ const createPayment = async (req, res) => {
             return res.status(400).json({ error: "Plan no válido" });
         }
 
-        // ✅ Crear PaymentIntent en Stripe
+        // ✅ Verificar si ya existe un PaymentIntent para este usuario y plan
+        let existingPayment = await Payment.findOne({ userId, plan: planNumber, status: "pending" });
+
+        if (existingPayment) {
+            console.log("📌 Se encontró un PaymentIntent existente:", existingPayment.paymentIntentId);
+            return res.status(200).json({
+                message: "Ya tienes un pago pendiente",
+                paymentIntentId: existingPayment.paymentIntentId,
+                paymentUrl: existingPayment.paymentUrl
+            });
+        }
+
+        // ✅ Crear un nuevo PaymentIntent en Stripe
         const paymentIntent = await stripe.paymentIntents.create({
             amount,
             currency,
             automatic_payment_methods: {
                 enabled: true,
-                allow_redirects: "never" // 🔹 Evita que Stripe requiera `return_url`
+                allow_redirects: "never"
             }
         });
 
         console.log("✅ PaymentIntent creado en Stripe:", paymentIntent.id);
 
-
+        // ✅ Guardar el nuevo pago en MongoDB
         const payment = new Payment({
-            _id: paymentIntent.id, // ✅ Ahora MongoDB acepta este ID como String
+            _id: paymentIntent.id, // Usamos el ID de Stripe como _id en MongoDB
             userId,
             paymentIntentId: paymentIntent.id,
             amount: paymentIntent.amount,
             currency: paymentIntent.currency,
-            status: "pending",
+            status: paymentIntent.status, // Guardamos el estado real de Stripe
             plan: planNumber,
             paymentUrl: paymentUrl
         });
@@ -53,7 +65,7 @@ const createPayment = async (req, res) => {
         res.status(201).json({
             message: "Pago iniciado",
             paymentIntentId: paymentIntent.id,
-            paymentUrl,
+            paymentUrl
         });
 
     } catch (error) {
@@ -61,6 +73,7 @@ const createPayment = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 
 const myPayments = async (req, res) => {
@@ -130,30 +143,21 @@ const getPaymentStatus = async (req, res) => {
 const changePaymentStatus = async (req, res) => {
     try {
         const { paymentIntentId } = req.query;
-
-        const payment = await Payment.findOne({ paymentIntentId });
-
-        console.log("Payment Intent en DB:", payment.paymentIntentId);
-        console.log("Payment Intent recibido:", paymentIntentId);
-
-        console.log("---------------------------------------------------------------------------- ");
-
-
-        // Consultar el estado real del pago en Stripe
-        const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-        console.log("Estado real en Stripe:", paymentIntent); // 🔍 Verifica qué estado devuelve Stripe
-        console.log("Estado en Stripe:", paymentIntent.status); // 🔍 Verifica qué estado devuelve Stripe
-
-        console.log("---------------------------------------------------------------------------- ");
-
-        // Si el pago en Stripe es "succeeded", actualizar en la base de datos
-        if (paymentIntent.status === "succeeded" && payment.status !== "success") {
-            payment.status = "success";
-            await payment.save();
-            console.log("Estado actualizado en la base de datos"); // ✅ Verifica si se actualiza
+        if (!paymentIntentId) {
+            return res.status(400).json({ error: "paymentIntentId es requerido" });
         }
+
+        const payment = await Payment.findById(paymentIntentId); // 🔹 Buscar por `_id`
+        if (!payment) {
+            return res.status(404).json({ error: "Pago no encontrado" });
+        }
+
+        payment.status = "completed"; // O el estado que desees
+        await payment.save();
+
+        res.json({ message: "Estado de pago actualizado correctamente" });
     } catch (error) {
-        console.error("Error:", error);
+        console.error("❌ Error al actualizar el estado del pago:", error.message);
         res.status(500).json({ error: error.message });
     }
 

@@ -108,20 +108,24 @@ const getPaymentStatus = async (req, res) => {
 
         // Consultar el estado real del pago en Stripe
         const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+        console.log("Estado en Stripe:", paymentIntent.status); // 🔍 Verifica qué estado devuelve Stripe
 
         // Si el pago en Stripe es "succeeded", actualizar en la base de datos
         if (paymentIntent.status === "succeeded" && payment.status !== "success") {
             payment.status = "success";
             await payment.save();
+            console.log("Estado actualizado en la base de datos"); // ✅ Verifica si se actualiza
         }
 
         // Responder con el estado actualizado
         res.json({ status: payment.status });
 
     } catch (error) {
+        console.error("Error:", error);
         res.status(500).json({ error: error.message });
     }
 };
+
 
 
 module.exports = { 

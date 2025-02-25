@@ -3,6 +3,7 @@ const mongoosePaginate = require('mongoose-paginate-v2');
 
 
 const PaymentSchema = Schema({
+    _id: { type: String, required: true }, 
     userId:
     {
         type: Schema.Types.ObjectId,
@@ -43,7 +44,7 @@ const PaymentSchema = Schema({
         type: String, 
         required: true 
     },
-});
+}, { _id: false });
 
 PaymentSchema.plugin(mongoosePaginate);
 

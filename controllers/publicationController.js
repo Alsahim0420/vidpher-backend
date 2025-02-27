@@ -26,7 +26,7 @@ const prueba_publication = (req, res) => {
 const save = async (req, res) => {
     try {
         // Recoger datos del body
-        const { text, title, subtitle, watchPublication, likes, suggested, isLiked, comments, likedBy } = req.body;
+        const { text, title, subtitle, watchPublication, likes, suggested, isLiked, comments, likedBy, location } = req.body; // ✅ Agregado location
 
         // Validar que el texto está presente
         if (!text) {
@@ -74,6 +74,7 @@ const save = async (req, res) => {
             isLiked: isLiked ?? false,
             comments: comments || [],
             likedBy: likedBy || [],
+            location: location || "", // ✅ Agregado location (si no lo envían, usa "")
         });
 
         // Guardar en la base de datos
@@ -94,6 +95,7 @@ const save = async (req, res) => {
         });
     }
 };
+
 
 
 // Sacar una publicacion

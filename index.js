@@ -1,29 +1,28 @@
-//Importar dependencias
+// Importar dependencias
 const connection = require('./database/connection');
 const express = require('express');
 const cors = require('cors');
 const cronJobs = require('./cronJobs');
 require("dotenv").config();
 
-
-//Mensaje de Bienvenioda
+// Mensaje de Bienvenida
 console.log("Bienvenido a Vidpher API");
 
-//Conexion a la base e datos 
+// Conexión a la base de datos
 connection();
 
-//Crear servidor de node
+// Crear servidor de node
 const app = express();
 const puerto = 3900;
 
-//Configurar CORS
+// Configurar CORS
 app.use(cors());
 
-//COnvertir los datos del body a objetos js
+// Middleware para convertir los datos del body a objetos JS
 app.use(express.json());
-app.use(express.urlencoded({extended: true}));
+app.use(express.urlencoded({ extended: true }));
 
-//Cargar conf rutas
+// Importar rutas
 const userRoutes = require('./routes/userRoutes');
 const followRoutes = require('./routes/followRoutes');
 const publicationRoutes = require('./routes/publicationRoutes');
@@ -35,7 +34,7 @@ const savedPublicationRoutes = require('./routes/savedPublicationRoutes');
 const suggestionRoutes = require('./routes/suggestionRoutes');
 const stripeRoutes = require('./routes/stripeRoutes');
 
-
+// Cargar rutas normales
 app.use('/api/user', userRoutes);
 app.use('/api/follow', followRoutes);
 app.use('/api/publication', publicationRoutes);
@@ -45,16 +44,18 @@ app.use('/api/preference', preferenceRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/savedPublication', savedPublicationRoutes);
 app.use('/api/suggestion', suggestionRoutes);
-app.use('/api/stripe', stripeRoutes);
 
-//ruta de prueba
+// ⚠️ IMPORTANTE: Stripe necesita que el cuerpo del webhook sea "raw" para verificar la firma
+app.post('/api/stripe', express.raw({ type: 'application/json' }), stripeRoutes);
+
+// Ruta de prueba
 app.get("/ruta-prueba", (req, res) => {
-    return res.status(200).json({message: "Ruta de prueba"});
+    return res.status(200).json({ message: "Ruta de prueba" });
 });
 
-// Poner servidor a escuchar peticiones http 
+// Iniciar servidor
 app.listen(puerto, () => {
-    console.log(`Servidor corriendo en http://localhost:${puerto}`);
-    console.log('Iniciando tareas programadas...');
+    console.log(`🚀 Servidor corriendo en http://localhost:${puerto}`);
+    console.log('⏳ Iniciando tareas programadas...');
     cronJobs;
-})
+});

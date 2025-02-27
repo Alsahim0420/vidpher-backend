@@ -13,6 +13,10 @@ const PublicationSchema = Schema({
         required: true
     },
     file: String,
+    location: {  // ✅ Se agregó la ubicación como un String
+        type: String,
+        default: ""
+    },
     createdAt: {
         type: Date,
         default: Date.now

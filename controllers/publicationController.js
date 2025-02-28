@@ -25,10 +25,8 @@ const prueba_publication = (req, res) => {
 
 const save = async (req, res) => {
     try {
-        // Recoger datos del body
-        const { text, title, subtitle, watchPublication, likes, suggested, isLiked, comments, likedBy, location } = req.body; // ✅ Agregado location
+        const { text, title, subtitle, watchPublication, likes, suggested, isLiked, comments, likedBy, location } = req.body;
 
-        // Validar que el texto está presente
         if (!text) {
             return res.status(400).json({
                 status: "error",
@@ -38,46 +36,57 @@ const save = async (req, res) => {
 
         let fileUrl = null;
 
-        // Verificar si se envió un archivo
+        // Verificar si se envió un archivo correctamente
         if (req.file) {
             const file = req.file.originalname;
             const extension = file.split('.').pop().toLowerCase();
 
             // Validar extensión del archivo
-            if (!["jpg", "jpeg", "png", "gif", "mp4", "mov", "avi", "mkv"].includes(extension)) {
-                fs.unlinkSync(req.file.path); // Eliminar archivo no válido
+            const validExtensions = ["jpg", "jpeg", "png", "gif", "mp4", "mov", "avi", "mkv"];
+            if (!validExtensions.includes(extension)) {
+                fs.unlinkSync(req.file.path); // Eliminar archivo inválido
                 return res.status(400).json({
                     status: "error",
                     message: "File extension is invalid",
                 });
             }
 
-            // Subir archivo a Cloudinary
-            const result = await cloudinary.uploader.upload(req.file.path, {
-                folder: "publications",
-            });
+            console.log("Archivo recibido:", req.file.path);
 
-            fileUrl = result.secure_url; // Guardar URL de la imagen
-            fs.unlinkSync(req.file.path); // Eliminar archivo temporal
+            // Subir archivo a Cloudinary solo si req.file.path es válido
+            try {
+                const result = await cloudinary.uploader.upload(req.file.path, {
+                    folder: "publications",
+                    resource_type: extension === "mp4" || extension === "mov" ? "video" : "image", // ✅ Permitir videos
+                });
+
+                fileUrl = result.secure_url;
+                fs.unlinkSync(req.file.path); // ✅ Eliminar archivo temporal después de subirlo
+            } catch (uploadError) {
+                console.error("Error al subir a Cloudinary:", uploadError);
+                return res.status(500).json({
+                    status: "error",
+                    message: "Error uploading file to Cloudinary",
+                });
+            }
         }
 
-        // Crear y rellenar el objeto del modelo con valores opcionales
+        // Crear y guardar la publicación
         const newPublication = new Publication({
-            user: req.user.id, // Usuario autenticado
+            user: req.user.id,
             text,
             file: fileUrl,
             title: title || "",
             subtitle: subtitle || "",
-            watchPublication: watchPublication ?? true, // Si no lo envían, usa true
+            watchPublication: watchPublication ?? true,
             likes: likes ?? 0,
             suggested: suggested ?? false,
             isLiked: isLiked ?? false,
             comments: comments || [],
             likedBy: likedBy || [],
-            location: location || "", // ✅ Agregado location (si no lo envían, usa "")
+            location: location || "",
         });
 
-        // Guardar en la base de datos
         const publicationStored = await newPublication.save();
 
         return res.status(200).json({
@@ -95,6 +104,7 @@ const save = async (req, res) => {
         });
     }
 };
+
 
 
 

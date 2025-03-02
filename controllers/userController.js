@@ -98,11 +98,14 @@ const register = async (req, res) => {
             });
         }
 
-
+        // Encriptar la contraseña antes de guardarla
         const hashedPassword = bcrypt.hashSync(params.password, 10);
         params.password = hashedPassword;
 
+        // Establecer la imagen en null si no se envía o está vacía
+        const imageValue = (!params.image || params.image.trim() === "") ? null : params.image;
 
+        // Crear y guardar el usuario
         const user_obj = new user({
             name: params.name,
             username: params.username,
@@ -113,7 +116,7 @@ const register = async (req, res) => {
             gender: params.gender || "",
             country: params.country || "",
             city: params.city || "",
-            image: params.image || "",
+            image: imageValue, // 🔹 Se establece como null si está vacío
             cellphone: params.cellphone || "",
         });
 
@@ -146,6 +149,7 @@ const register = async (req, res) => {
         });
     }
 };
+
 
 
 
@@ -199,6 +203,11 @@ const login = async (req, res) => {
             });
         }
 
+        // Establecer la imagen en null si no tiene valor
+        if (!userFound.image || userFound.image.trim() === "") {
+            userFound.image = null;
+        }
+
         // Generar el token
         const token = jwt.createToken(userFound);
 
@@ -219,6 +228,7 @@ const login = async (req, res) => {
         });
     }
 };
+
 
 
 const profile = async (req, res) => {
@@ -351,7 +361,11 @@ const update = async (req, res) => {
     delete user_update.iat;
     delete user_update.exp;
     delete user_update.rol;
-    delete user_update.image;
+
+    // Si no se envía imagen, establecerla en null
+    if (!user_update.image || user_update.image.trim() === "") {
+        user_update.image = null;
+    }
 
     try {
         // Obtener el usuario actual
@@ -365,7 +379,7 @@ const update = async (req, res) => {
 
         // Mantener los valores actuales si no se envían en la petición
         Object.keys(existingUser._doc).forEach(key => {
-            if (!user_update[key]) {
+            if (user_update[key] === undefined) {
                 user_update[key] = existingUser[key];
             }
         });
@@ -384,7 +398,7 @@ const update = async (req, res) => {
         // Guardar cambios y obtener el usuario actualizado
         const updatedUser = await user.findByIdAndUpdate(user_identity.id, user_update, { new: true });
 
-        // Contar seguidores y seguidos (asumiendo que tienes un modelo `Follow`)
+        // Contar seguidores y seguidos
         const followingCount = await Follow.countDocuments({ user: user_identity.id });
         const followedCount = await Follow.countDocuments({ followed: user_identity.id });
         const publicationsCount = await Publication.countDocuments({ user: user_identity.id });
@@ -393,20 +407,20 @@ const update = async (req, res) => {
         const userPublications = await Publication.find({ user: user_identity.id })
             .populate({
                 path: "comments",
-                populate: { path: "user", select: "name username email image" }, // Expande información del usuario en los comentarios
+                populate: { path: "user", select: "-password" },
             })
             .exec();
 
         return res.status(200).json({
             status: "success",
             message: "User Updated Successfully",
-            user: updatedUser, // 🔹 Solo la info del usuario
+            user: updatedUser,
             counters: {
                 following: followingCount,
                 followed: followedCount,
                 publications: publicationsCount,
             },
-            publications: userPublications, // 🔹 Publicaciones separadas
+            publications: userPublications,
         });
     } catch (error) {
         return res.status(500).json({
@@ -416,6 +430,7 @@ const update = async (req, res) => {
         });
     }
 };
+
 
 
 

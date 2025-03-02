@@ -389,7 +389,6 @@ const likePublication = async (req, res) => {
                 console.log("Suggestion created and post marked as suggested.");
             }
         } else if (publication.likes >= 40) {
-            // Si la sugerencia ya existe, no es necesario hacer nada adicional
             console.log("The post already has a suggestion.");
         }
 
@@ -407,10 +406,23 @@ const likePublication = async (req, res) => {
             }
         }
 
+        // Convertir publicación en objeto para modificar campos antes de enviarlos
         const publicationObject = publication.toObject({ virtuals: true });
-        publicationObject.isLiked = publication.likedBy.includes(userId); // Aquí calculamos isLiked manualmente
-        publicationObject.userId = userId;
 
+        // ✅ Asegurar que 'image' siempre tenga un valor
+        if (!publicationObject.user.image || publicationObject.user.image.trim() === "") {
+            publicationObject.user.image = null;
+        }
+
+        // ✅ Asegurar que 'image' en comentarios siempre tenga un valor
+        publicationObject.comments.forEach(comment => {
+            if (!comment.user.image || comment.user.image.trim() === "") {
+                comment.user.image = null;
+            }
+        });
+
+        publicationObject.isLiked = publication.likedBy.includes(userId);
+        publicationObject.userId = userId;
 
         res.status(200).json({
             message: `Post successfully ${isLiking ? "liked" : "unliked"}`,
@@ -421,7 +433,6 @@ const likePublication = async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 };
-
 
 
 

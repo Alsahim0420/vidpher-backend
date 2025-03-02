@@ -1,4 +1,4 @@
-const {Schema, model} = require('mongoose');
+const { Schema, model } = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
 
 const UserSchema = new Schema({
@@ -22,17 +22,21 @@ const UserSchema = new Schema({
         type: Number,
         required: true
     },
-    image:{
-        type:String,
-        default:""
+    image: {
+        type: String,
+        default: ""
     },
-    createdAt:{
-        type:Date,
-        default:Date.now
+    createdAt: {
+        type: Date,
+        default: Date.now
     },
-    otp:String,
-    bio:String,
+    otp: String,
+    bio: String,
     fcmToken: { type: String },
+    gender: { type: String, default: "" },
+    country: { type: String, default: "" },
+    city: { type: String, default: "" },
+    cellphone: { type: String, default: "" },
 });
 
 UserSchema.plugin(mongoosePaginate);

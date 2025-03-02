@@ -47,11 +47,35 @@ const register = async (req, res) => {
     const params = req.body;
     console.log(params);
 
-    // Validación básica
-    if (!params.username || !params.password || !params.email || !params.role || !params.name) {
+    // Validación separada de cada campo obligatorio
+    if (!params.name) {
         return res.status(400).json({
             status: 'error',
-            message: 'There is still data to send. Please provide name, username, password, email, and role.',
+            message: 'The name field is required.',
+        });
+    }
+    if (!params.username) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'The username field is required.',
+        });
+    }
+    if (!params.email) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'The email field is required.',
+        });
+    }
+    if (!params.password) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'The password field is required.',
+        });
+    }
+    if (!params.role) {
+        return res.status(400).json({
+            status: 'error',
+            message: 'The role field is required.',
         });
     }
 
@@ -59,37 +83,38 @@ const register = async (req, res) => {
         // Validación avanzada
         validate.validate(params);
 
-        // Convertir email y username a minúsculas para consistencia
-        const emailLower = params.email.toLowerCase();
-        const usernameLower = params.username.toLowerCase();
-
-        // Verificar si el usuario o email ya existen
+        // Verificar si el username/email ya existen en la base de datos
         const existingUser = await user.findOne({
             $or: [
-                { email: emailLower },
-                { username: usernameLower },
+                { email: params.email },
+                { username: params.username },
             ],
         });
 
         if (existingUser) {
             return res.status(409).json({
                 status: 'error',
-                message: 'The username or email address is already registered',
+                message: 'The username or email address is already registered.',
             });
         }
 
-        // Encriptar contraseña
+        
         const hashedPassword = bcrypt.hashSync(params.password, 10);
         params.password = hashedPassword;
 
-        // Crear y guardar el nuevo usuario con una bio por defecto
+        
         const user_obj = new user({
             name: params.name,
-            username: usernameLower,
-            email: emailLower,
+            username: params.username,
+            email: params.email,
             password: params.password,
             role: params.role,
-            bio: params.bio || "Hello! I'm new here.", // Bio por defecto
+            bio: params.bio || "Hello! I'm new here.", 
+            gender: params.gender || "", 
+            country: params.country || "",
+            city: params.city || "",
+            image: params.image || "", 
+            cellphone: params.cellphone || "",
         });
 
         const userStored = await user_obj.save();
@@ -100,7 +125,7 @@ const register = async (req, res) => {
         // Responder con el usuario registrado y el token
         return res.status(201).json({
             status: 'success',
-            message: 'Successfully registered and logged in',
+            message: 'Successfully registered and logged in.',
             user: userStored,
             token, // Enviar el token al cliente
         });
@@ -116,11 +141,12 @@ const register = async (req, res) => {
         // Manejar otros errores
         return res.status(500).json({
             status: 'error',
-            message: 'User query or user save failed',
+            message: 'User query or user save failed.',
             error: error.message,
         });
     }
 };
+
 
 
 
@@ -217,7 +243,7 @@ const profile = async (req, res) => {
 
         let publications = [];
 
-        if (userFound.role === 2) { 
+        if (userFound.role === 2) {
             publications = await Publication.find({ user: id })
                 .select('file likes likedBy comments createdAt user watchPublication')
                 .sort({ createdAt: -1 })
@@ -250,7 +276,7 @@ const profile = async (req, res) => {
                 followed,
                 publications: publicationsCount
             },
-            publications: publicationsWithLikes 
+            publications: publicationsWithLikes
         });
 
     } catch (err) {
@@ -316,7 +342,6 @@ const list = async (req, res) => {
     }
 };
 
-
 const update = async (req, res) => {
     const user_identity = req.user;
     const user_update = req.body;
@@ -356,13 +381,25 @@ const update = async (req, res) => {
             }
         }
 
-        // Guardar cambios
-        const updatedUser = await user.findByIdAndUpdate(user_identity.id, user_update, { new: true });
+        // Guardar cambios y obtener el usuario actualizado
+        let updatedUser = await user.findByIdAndUpdate(user_identity.id, user_update, { new: true });
+
+        // Obtener publicaciones del usuario y expandir comentarios con información del usuario
+        const userPublications = await Publication.find({ user: user_identity.id })
+            .populate({
+                path: "comments",
+                populate: { path: "user", select: "name username email image" }, // Expande información del usuario en los comentarios
+            })
+            .exec();
+
+        // Convertir updatedUser a objeto para poder modificarlo
+        updatedUser = updatedUser.toObject();
+        updatedUser.publications = userPublications; // 🔹 Se agregan las publicaciones dentro del usuario
 
         return res.status(200).json({
             status: "success",
             message: "User Updated Successfully",
-            user: updatedUser,
+            user: updatedUser, // 🔹 Ahora incluye las publicaciones dentro
         });
     } catch (error) {
         return res.status(500).json({
@@ -372,6 +409,8 @@ const update = async (req, res) => {
         });
     }
 };
+
+
 
 
 const updateAvatar = async (userId, avatarUrl) => {
@@ -631,13 +670,13 @@ const searchAll = async (req, res) => {
         }
 
         // Buscar usuarios por username o email
-        const users = 
-        await user.find({
-            $or: [
-                { username: new RegExp(query, "i") }, // Búsqueda insensible a mayúsculas
-                { email: new RegExp(query, "i") }
-            ]
-        }).select("-password"); // Excluir la contraseña
+        const users =
+            await user.find({
+                $or: [
+                    { username: new RegExp(query, "i") }, // Búsqueda insensible a mayúsculas
+                    { email: new RegExp(query, "i") }
+                ]
+            }).select("-password"); // Excluir la contraseña
 
         // Buscar preferencias
         const preferences = await Preferences.find({
@@ -703,5 +742,5 @@ module.exports = {
     updateAvatar,
     countUsersByRole,
     updateFcmToken,
-    searchAll, 
+    searchAll,
 };

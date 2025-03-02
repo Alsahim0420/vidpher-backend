@@ -98,22 +98,22 @@ const register = async (req, res) => {
             });
         }
 
-        
+
         const hashedPassword = bcrypt.hashSync(params.password, 10);
         params.password = hashedPassword;
 
-        
+
         const user_obj = new user({
             name: params.name,
             username: params.username,
             email: params.email,
             password: params.password,
             role: params.role,
-            bio: params.bio || "Hello! I'm new here.", 
-            gender: params.gender || "", 
+            bio: params.bio || "Hello! I'm new here.",
+            gender: params.gender || "",
             country: params.country || "",
             city: params.city || "",
-            image: params.image || "", 
+            image: params.image || "",
             cellphone: params.cellphone || "",
         });
 
@@ -381,8 +381,8 @@ const update = async (req, res) => {
             }
         }
 
-        // Guardar cambios y obtener el usuario actualizado
-        let updatedUser = await user.findByIdAndUpdate(user_identity.id, user_update, { new: true });
+        // Guardar cambios
+        const updatedUser = await user.findByIdAndUpdate(user_identity.id, user_update, { new: true });
 
         // Obtener publicaciones del usuario y expandir comentarios con información del usuario
         const userPublications = await Publication.find({ user: user_identity.id })
@@ -392,14 +392,11 @@ const update = async (req, res) => {
             })
             .exec();
 
-        // Convertir updatedUser a objeto para poder modificarlo
-        updatedUser = updatedUser.toObject();
-        updatedUser.publications = userPublications; // 🔹 Se agregan las publicaciones dentro del usuario
-
         return res.status(200).json({
             status: "success",
             message: "User Updated Successfully",
-            user: updatedUser, // 🔹 Ahora incluye las publicaciones dentro
+            user: updatedUser,
+            publications: userPublications, // 🔹 Se agregan las publicaciones con los comentarios expandidos
         });
     } catch (error) {
         return res.status(500).json({
@@ -409,6 +406,7 @@ const update = async (req, res) => {
         });
     }
 };
+
 
 
 

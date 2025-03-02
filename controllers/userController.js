@@ -381,8 +381,13 @@ const update = async (req, res) => {
             }
         }
 
-        // Guardar cambios
+        // Guardar cambios y obtener el usuario actualizado
         const updatedUser = await user.findByIdAndUpdate(user_identity.id, user_update, { new: true });
+
+        // Contar seguidores y seguidos (asumiendo que tienes un modelo `Follow`)
+        const followingCount = await Follow.countDocuments({ user: user_identity.id });
+        const followedCount = await Follow.countDocuments({ followed: user_identity.id });
+        const publicationsCount = await Publication.countDocuments({ user: user_identity.id });
 
         // Obtener publicaciones del usuario y expandir comentarios con información del usuario
         const userPublications = await Publication.find({ user: user_identity.id })
@@ -395,8 +400,13 @@ const update = async (req, res) => {
         return res.status(200).json({
             status: "success",
             message: "User Updated Successfully",
-            user: updatedUser,
-            publications: userPublications, // 🔹 Se agregan las publicaciones con los comentarios expandidos
+            user: updatedUser, // 🔹 Solo la info del usuario
+            counters: {
+                following: followingCount,
+                followed: followedCount,
+                publications: publicationsCount,
+            },
+            publications: userPublications, // 🔹 Publicaciones separadas
         });
     } catch (error) {
         return res.status(500).json({
@@ -406,6 +416,8 @@ const update = async (req, res) => {
         });
     }
 };
+
+
 
 
 

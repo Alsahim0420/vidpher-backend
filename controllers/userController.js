@@ -255,7 +255,7 @@ const profile = async (req, res) => {
 
         if (userFound.role === 2) {
             publications = await Publication.find({ user: id })
-                .select('file likes likedBy comments createdAt user watchPublication')
+                .select('file likes likedBy comments createdAt user watchPublication text')
                 .sort({ createdAt: -1 })
                 .populate({
                     path: 'comments.user',

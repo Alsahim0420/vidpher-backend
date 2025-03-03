@@ -688,47 +688,71 @@ const updateFcmToken = async (req, res) => {
 
 const searchAll = async (req, res) => {
     try {
-        const { query } = req.query;
+        const { query, filter } = req.query;
 
         if (!query) {
-            return res.status(400).json({ message: "El parámetro de búsqueda es obligatorio." });
+            return res.status(400).json({ message: "The search parameter is mandatory." });
         }
 
-        // Buscar usuarios por username o email
-        const users =
-            await user.find({
+        let users = [];
+        let preferences = [];
+        let publications = [];
+
+        if (!filter || filter === "cuentas") {
+            // Buscar usuarios por username o email
+            users = await user.find({
                 $or: [
-                    { username: new RegExp(query, "i") }, // Búsqueda insensible a mayúsculas
+                    { username: new RegExp(query, "i") },
                     { email: new RegExp(query, "i") }
                 ]
-            }).select("-password"); // Excluir la contraseña
+            }).select("-password");
 
-        // Buscar preferencias
-        const preferences = await Preferences.find({
-            preferences: new RegExp(query, "i")
-        }).populate({
-            path: "user",
-            select: "-password" // Excluir la contraseña del usuario en preferencias
-        });
+            // Buscar usuarios por categoría en sus preferencias
+            const usersByPreferences = await Preferences.find({
+                preferences: new RegExp(query, "i")
+            }).populate({
+                path: "user",
+                select: "-password"
+            });
 
-        // Crear un mapa para eliminar duplicados de usuarios
+            // Agregar estos usuarios al array de users
+            usersByPreferences.forEach(pref => {
+                if (pref.user) {
+                    users.push(pref.user);
+                }
+            });
+        }
+
+        if (!filter || filter === "categoria") {
+            preferences = await Preferences.find({
+                preferences: new RegExp(query, "i")
+            }).populate({
+                path: "user",
+                select: "-password"
+            });
+        }
+
+        if (!filter || filter === "ubicacion") {
+            publications = await Publication.find({
+                location: new RegExp(query, "i")
+            }).populate("user", "-password");
+        }
+
+        // Eliminar duplicados de usuarios
         const uniqueUsers = new Map();
-
-        // Agregar los usuarios encontrados directamente
         users.forEach(user => uniqueUsers.set(user._id.toString(), user));
 
-        // Agregar los usuarios encontrados en preferencias (evitando duplicados)
+        // Eliminar duplicados en preferencias
         preferences.forEach(pref => {
             if (pref.user) {
                 uniqueUsers.set(pref.user._id.toString(), pref.user);
             }
         });
 
-        // Convertir el mapa en un array
         const uniqueUsersArray = Array.from(uniqueUsers.values());
 
-        // Verificar si la búsqueda no arrojó resultados
-        if (uniqueUsersArray.length === 0 && preferences.length === 0) {
+        // Si no hay resultados
+        if (uniqueUsersArray.length === 0 && preferences.length === 0 && publications.length === 0) {
             return res.status(200).json({
                 status: "success",
                 message: "Consultation carried out successfully.",
@@ -736,20 +760,20 @@ const searchAll = async (req, res) => {
             });
         }
 
-        // Enviar la respuesta con usuarios únicos
         res.status(200).json({
             status: "success",
             message: "Successful search",
             data: {
                 users: uniqueUsersArray,
-                preferences
+                preferences,
+                publications
             }
         });
-
     } catch (error) {
         res.status(500).json({ message: "Error en la búsqueda", error: error.message });
     }
 };
+
 
 //Expoortar las acciones
 module.exports = {

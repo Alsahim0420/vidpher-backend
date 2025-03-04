@@ -403,11 +403,18 @@ const update = async (req, res) => {
         const followedCount = await Follow.countDocuments({ followed: user_identity.id });
         const publicationsCount = await Publication.countDocuments({ user: user_identity.id });
 
-        // Obtener publicaciones del usuario y expandir comentarios con información del usuario
+        // Obtener publicaciones del usuario y expandir información del usuario en la publicación y comentarios
         const userPublications = await Publication.find({ user: user_identity.id })
             .populate({
+                path: "user", // Expande la información completa del usuario en la publicación
+                select: "-password", // Excluye la contraseña
+            })
+            .populate({
                 path: "comments",
-                populate: { path: "user", select: "-password" },
+                populate: {
+                    path: "user",
+                    select: "-password",
+                },
             })
             .exec();
 
@@ -430,6 +437,7 @@ const update = async (req, res) => {
         });
     }
 };
+
 
 
 

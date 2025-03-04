@@ -2,12 +2,16 @@ const fs = require('fs'); // Para trabajar con el sistema de archivos
 const cloudinary = require('cloudinary').v2; // Para subir archivos a Cloudinary
 const Story = require('../models/story'); // Asegúrate de importar el modelo Story
 const Follow = require('../models/follow')
+const User = require('../models/user'); // Asegúrate de importar el modelo User
 
 
 
 const upload = async (req, res) => {
     try {
-        console.log('User ID:', req.user.id);
+        console.log("User ID:", req.user.id);
+
+        // Poblar el usuario excluyendo la contraseña
+        const populatedUser = await User.findById(req.user.id).select("-password");
 
         // Verificar si se envió un archivo
         if (!req.file) {
@@ -19,7 +23,7 @@ const upload = async (req, res) => {
 
         // Obtener el nombre del archivo y la extensión
         const file = req.file.originalname;
-        const extension = file.split('.').pop().toLowerCase();
+        const extension = file.split(".").pop().toLowerCase();
 
         // Validar la extensión del archivo
         if (!["jpg", "jpeg", "png", "gif", "mp4", "mov", "avi", "mkv"].includes(extension)) {
@@ -41,29 +45,32 @@ const upload = async (req, res) => {
 
         // Subir archivo a Cloudinary
         const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: 'stories', // Carpeta opcional en Cloudinary
+            folder: "stories", // Carpeta opcional en Cloudinary
         });
 
         // Eliminar archivo temporal
         fs.unlinkSync(req.file.path);
 
-        // Crear una nueva historia en la base de datos
+        // Crear una nueva historia en la base de datos con el usuario poblado
         const newStory = new Story({
-            user: req.user.id,
-            text: req.body.text || "", // Texto opcional en el cuerpo de la solicitud
+            user: populatedUser, // Se guarda el usuario con sus datos poblados
+            text: req.body.text || "",
             file: result.secure_url,
-            cloudinaryPublicId: result.public_id, // Guardar el ID público de Cloudinary
-            expiresAt: Date.now() + 24 * 60 * 60 * 1000, // Expira en 24 horas
-            suggested: req.body.suggested || false, // Opcional: sugerencia
+            cloudinaryPublicId: result.public_id,
+            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+            suggested: req.body.suggested || false,
         });
 
         await newStory.save();
+
+        // Poblar la historia con el usuario
+        const populatedStory = await newStory.populate("user", "-password -__v -role -email");
 
         // Responder con éxito
         return res.status(200).json({
             status: "success",
             message: "New story successfully created",
-            story: newStory,
+            story: populatedStory, // Devuelve la historia con el usuario poblado
             imageUrl: result.secure_url,
         });
 

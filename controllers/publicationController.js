@@ -4,7 +4,7 @@ const path = require("path");
 const cloudinary = require('../config/cloudinary-config');
 const Suggestion = require('../models/suggestions');
 const User = require("../models/user");
-const userController = require("./userController");
+const SavedPublications = require("../models/savedPublication");
 const sendNotification = require("../utils/notifications/notificationService");
 
 
@@ -260,8 +260,8 @@ const media = (req, res) => {
 
 const feed = async (req, res) => {
     try {
-        const userExists = await User.findById(req.user.id);
-        if (!userExists) {
+        const user = await User.findById(req.user.id);
+        if (!user) {
             return res.status(404).json({
                 status: "error",
                 message: "User not found",
@@ -274,30 +274,40 @@ const feed = async (req, res) => {
             .sort({ createdAt: -1 }) // Ordenar publicaciones de más reciente a más antiguo
             .populate({
                 path: "user",
-                select: "-password -__v -createdAt -token", 
+                select: "-password -__v -createdAt -token",
             })
             .populate({
-                path: "comments.user", 
-                select: "-password -__v -createdAt -token", 
+                path: "comments.user",
+                select: "-password -__v -createdAt -token",
             });
 
         const userId = req.user.id;
-        const publicationsWithLikes = publications.map(publication => {
+        const userRole = user.role; 
+
+        const publicationsWithMeta = await Promise.all(publications.map(async (publication) => {
             const publicationObj = publication.toObject({ virtuals: true });
             publicationObj.isLiked = publication.likedBy.includes(userId);
             
-            // Ordenar los comentarios del más reciente al más antiguo
-            publicationObj.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
             
-            return publicationObj;
-        });
+            publicationObj.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-        // Responder con los datos
+            
+            if (userRole === 3) {
+                const savedPublication = await SavedPublications.findOne({ user: userId, publication: publication._id });
+                publicationObj.isSaved = !!savedPublication; // Devuelve true si existe, false si no
+            } else {
+                publicationObj.isSaved = false;
+            }
+
+            return publicationObj;
+        }));
+
         return res.status(200).json({
             status: "success",
             message: "List of posts in the feed",
-            publications: publicationsWithLikes, 
+            publications: publicationsWithMeta,
         });
+
     } catch (error) {
         return res.status(500).json({
             status: "error",
@@ -306,6 +316,7 @@ const feed = async (req, res) => {
         });
     }
 };
+
 
 
 

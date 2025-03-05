@@ -4,8 +4,9 @@ const path = require("path");
 const cloudinary = require('../config/cloudinary-config');
 const Suggestion = require('../models/suggestions');
 const User = require("../models/user");
-const SavedPublications = require("../models/savedPublication");
+const SavedPublication = require("../models/savedPublication");
 const sendNotification = require("../utils/notifications/notificationService");
+const mongoose = require("mongoose");
 
 
 
@@ -271,7 +272,7 @@ const feed = async (req, res) => {
         const myFollows = await followService.followUserIds(req.user.id);
 
         const publications = await Publication.find({ user: { $in: myFollows.following } })
-            .sort({ createdAt: -1 }) // Ordenar publicaciones de más reciente a más antiguo
+            .sort({ createdAt: -1 })
             .populate({
                 path: "user",
                 select: "-password -__v -createdAt -token",
@@ -282,25 +283,26 @@ const feed = async (req, res) => {
             });
 
         const userId = req.user.id;
-        const userRole = user.role; 
+        
 
-        const publicationsWithMeta = await Promise.all(publications.map(async (publication) => {
+        // Obtener todas las publicaciones guardadas del usuario logueado de una sola consulta
+        const savedPublications = await SavedPublication.find({ user: userId })
+            .select("publication")
+            .lean();
+
+        const savedPublicationIds = new Set(savedPublications.map(sp => sp.publication.toString())); // Usamos un Set para búsqueda eficiente
+
+        const publicationsWithMeta = publications.map(publication => {
             const publicationObj = publication.toObject({ virtuals: true });
+
             publicationObj.isLiked = publication.likedBy.includes(userId);
-            
-            
             publicationObj.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-            
-            if (userRole === 3) {
-                const savedPublication = await SavedPublications.findOne({ user: userId, publication: publication._id });
-                publicationObj.isSaved = !!savedPublication; // Devuelve true si existe, false si no
-            } else {
-                publicationObj.isSaved = false;
-            }
+            // Revisamos si la publicación está en el Set de publicaciones guardadas
+            publicationObj.isSaved = savedPublicationIds.has(publication._id.toString());
 
             return publicationObj;
-        }));
+        });
 
         return res.status(200).json({
             status: "success",
@@ -316,6 +318,8 @@ const feed = async (req, res) => {
         });
     }
 };
+
+
 
 
 
@@ -442,7 +446,7 @@ const addComment = async (req, res) => {
         const newComment = {
             user: userId,
             text,
-            createdAt: new Date() 
+            createdAt: new Date()
         };
 
         const publication = await Publication.findByIdAndUpdate(
@@ -450,21 +454,21 @@ const addComment = async (req, res) => {
             { $push: { comments: newComment } },
             { new: true }
         )
-        .populate({
-            path: 'comments.user',
-            select: '-password'
-        })
-        .populate({
-            path: 'user', 
-            select: '-password'
-        });
+            .populate({
+                path: 'comments.user',
+                select: '-password'
+            })
+            .populate({
+                path: 'user',
+                select: '-password'
+            });
 
         if (!publication) {
             return res.status(404).json({ message: "Post not found" });
         }
 
-        res.status(200).json({ 
-            message: "Comment added successfully", 
+        res.status(200).json({
+            message: "Comment added successfully",
         });
     } catch (error) {
         console.error("Error adding comment:", error);

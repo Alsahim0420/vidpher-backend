@@ -12,75 +12,43 @@ const prueba_follow = (req, res) => {
     })
 };
 
-//Accion de guardar un follow
-const save = async (req, res) => {
+const toggleFollow = async (req, res) => {
     try {
-        // Conseguir datos por body
-        const params = req.body;
+        const userId = req.user.id;
+        const followedId = req.body.followed; // Usuario al que se quiere seguir/dejar de seguir
 
-        // Sacar el usuario del id identificado
-        const identity = req.user;
+        // Verificar si ya existe el follow
+        const existingFollow = await Follow.findOne({ user: userId, followed: followedId });
 
-        // Crear objeto con modelo Follow
-        const user_follow = new Follow({
-            user: identity.id,
-            followed: params.followed
-        });
+        if (existingFollow) {
+            // Si ya sigue al usuario, eliminar el follow
+            await Follow.deleteOne({ _id: existingFollow._id });
 
-        // Guardar en la BD
-        const followStored = await user_follow.save();
+            return res.status(200).json({
+                status: 'success',
+                message: 'Follow removed successfully',
+                isFollowing: false
+            });
+        } else {
+            // Si no lo sigue, crear el follow
+            const newFollow = new Follow({ user: userId, followed: followedId });
+            await newFollow.save();
 
-        // Devolver respuesta exitosa
-        return res.status(200).json({
-            status: 'success',
-            message: 'Follow Registered Successfully',
-            identity: req.user,
-            user: followStored
-        });
+            return res.status(200).json({
+                status: 'success',
+                message: 'Follow Registered Successfully',
+                isFollowing: true
+            });
+        }
     } catch (error) {
-        // Manejar errores
         return res.status(500).json({
             status: 'error',
-            message: 'The follow has not been saved',
+            message: 'Error toggling follow status',
             error: error.message
         });
     }
 };
 
-
-const unfollow = async (req, res) => {
-    try {
-        // Sacar el id del usuario identificado
-        const userId = req.user.id;
-
-        // Sacar el id del usuario que se quiere dejar de seguir
-        const followedId = req.params.id;
-
-        // Eliminar el follow con esos parámetros
-        const result = await Follow.deleteOne({ user: userId, followed: followedId });
-
-        // Comprobar si se eliminó algo
-        if (result.deletedCount === 0) {
-            return res.status(404).json({
-                status: 'error',
-                message: 'The follow does not exist or has already been deleted'
-            });
-        }
-
-        // Respuesta exitosa
-        return res.status(200).json({
-            status: 'success',
-            message: 'Follow removed successfully',
-        });
-    } catch (err) {
-        // Manejo de errores
-        return res.status(500).json({
-            status: 'error',
-            message: 'Error trying to remove follow',
-            error: err.message
-        });
-    }
-};
 
 
 const following = async (req, res) => {
@@ -188,8 +156,7 @@ const followers = async (req, res) => {
 //Expoortar las acciones
 module.exports = {
     prueba_follow,
-    save,
-    unfollow,
+    toggleFollow,
     followers,
     following
 };

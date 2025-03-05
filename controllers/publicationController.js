@@ -304,8 +304,9 @@ const feed = async (req, res) => {
         // Asignar el userId a cada publicación y convertir a objetos con virtuales
         const userId = req.user.id;
         const publicationsWithLikes = publications.docs.map(publication => {
-            publication._locals = { userId }; // Asigna userId para calcular isLiked
-            return publication.toObject({ virtuals: true }); // Incluir isLiked
+            const publicationObj = publication.toObject({ virtuals: true });
+            publicationObj.isLiked = publication.likedBy.includes(userId);
+            return publicationObj;
         });
 
         // Responder con los datos
@@ -446,13 +447,17 @@ const addComment = async (req, res) => {
         const { text } = req.body;
         const userId = req.user.id;
 
-
         const publication = await Publication.findByIdAndUpdate(
             publicationId,
             { $push: { comments: { user: userId, text } } },
             { new: true }
-        ).populate({
+        )
+        .populate({
             path: 'comments.user',
+            select: '-password'
+        })
+        .populate({
+            path: 'user', // Traer toda la información del usuario de la publicación
             select: '-password'
         });
 
@@ -460,19 +465,15 @@ const addComment = async (req, res) => {
             return res.status(404).json({ message: "Post not found" });
         }
 
-
-        const populatedPublication = await Publication.findById(publication._id)
-            .populate({
-                path: 'comments.user',
-                select: '-password'
-            });
-
-        res.status(200).json({ message: "Comment added successfully", publication: populatedPublication });
+        res.status(200).json({ 
+            message: "Comment added successfully", 
+        });
     } catch (error) {
         console.error("Error adding comment:", error);
         res.status(500).json({ message: "Server Error" });
     }
 };
+
 
 
 

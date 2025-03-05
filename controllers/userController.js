@@ -236,8 +236,7 @@ const profile = async (req, res) => {
         const id = req.params.id;
 
         // Buscar al usuario por ID y obtener su tipo
-        const userFound = await user.findById(id)
-            .select({ password: 0, otp: 0 });
+        const userFound = await user.findById(id).select({ password: 0, otp: 0 });
 
         if (!userFound) {
             return res.status(404).send({
@@ -249,8 +248,7 @@ const profile = async (req, res) => {
         const followInfo = await followServices.followThisUser(req.user.id, id);
         const following = await Follow.countDocuments({ user: id });
         const followed = await Follow.countDocuments({ followed: id });
-        const publicationsCount = await Publication.countDocuments({ user: id });
-
+        let publicationsCount = 0;
         let publications = [];
 
         if (userFound.role === 2) {
@@ -265,13 +263,18 @@ const profile = async (req, res) => {
                     path: 'user',
                     select: '-password -otp'
                 });
+            publicationsCount = publications.length;
         } else if (userFound.role === 3) {
             const savedPublications = await SavedPublication.find({ user: id })
-                .populate({ path: 'publication', populate:[ { path: 'user', select: '-password' },
-                    { path: 'comments.user' }
-                ] });
+                .populate({
+                    path: 'publication', populate: [
+                        { path: 'user', select: '-password' },
+                        { path: 'comments.user' }
+                    ]
+                });
 
             publications = savedPublications.map(saved => saved.publication);
+            publicationsCount = publications.length;
         }
 
         const userId = req.user.id;
@@ -288,7 +291,8 @@ const profile = async (req, res) => {
                 followed,
                 publications: publicationsCount
             },
-            publications: publicationsWithLikes
+            publications: publicationsWithLikes,
+            role: userFound.role
         });
 
     } catch (err) {

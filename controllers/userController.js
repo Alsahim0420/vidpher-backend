@@ -270,6 +270,7 @@ const profile = async (req, res) => {
             publicationsCount = publications.length;
         } else if (userFound.role === 3) {
             const savedPublications = await SavedPublication.find({ user: id })
+                .sort({ createdAt: -1 })
                 .populate({
                     path: 'publication', populate: [
                         { path: 'user', select: '-password' },

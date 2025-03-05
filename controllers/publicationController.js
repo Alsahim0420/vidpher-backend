@@ -260,7 +260,7 @@ const media = (req, res) => {
 
 const feed = async (req, res) => {
     try {
-        // Verificar si el usuario del token existe en la base de datos
+        
         const userExists = await User.findById(req.user.id);
         if (!userExists) {
             return res.status(404).json({
@@ -269,41 +269,24 @@ const feed = async (req, res) => {
             });
         }
 
-        // Página actual
-        let page = parseInt(req.params.page) || 1;
-
-        // Número de elementos por página
-        const itemsPerPage = 10;
-
-        // Obtener los usuarios que sigue el usuario actual
+        
         const myFollows = await followService.followUserIds(req.user.id);
 
-        // Configurar opciones de paginación
-        const options = {
-            page,
-            limit: itemsPerPage,
-            sort: { createdAt: -1 }, // Ordenar por fecha de creación descendente
-            populate: [
-                {
-                    path: "user",
-                    select: "-password -__v -createdAt -token", // Excluir campos sensibles
-                },
-                {
-                    path: "comments.user", // Poblar el usuario en cada comentario
-                    select: "-password -__v -createdAt -token", // Excluir campos sensibles
-                }
-            ],
-        };
+        
+        const publications = await Publication.find({ user: { $in: myFollows.following } })
+            .sort({ createdAt: -1 })
+            .populate({
+                path: "user",
+                select: "-password -__v -createdAt -token", 
+            })
+            .populate({
+                path: "comments.user", 
+                select: "-password -__v -createdAt -token", 
+            });
 
-        // Buscar publicaciones de los usuarios seguidos con paginación
-        const publications = await Publication.paginate(
-            { user: { $in: myFollows.following } }, // Filtrar por usuarios seguidos
-            options
-        );
-
-        // Asignar el userId a cada publicación y convertir a objetos con virtuales
+       
         const userId = req.user.id;
-        const publicationsWithLikes = publications.docs.map(publication => {
+        const publicationsWithLikes = publications.map(publication => {
             const publicationObj = publication.toObject({ virtuals: true });
             publicationObj.isLiked = publication.likedBy.includes(userId);
             return publicationObj;
@@ -313,10 +296,7 @@ const feed = async (req, res) => {
         return res.status(200).json({
             status: "success",
             message: "List of posts in the feed",
-            total: publications.totalDocs,
-            page: publications.page,
-            pages: publications.totalPages,
-            publications: publicationsWithLikes, // Publicaciones con isLiked
+            publications: publicationsWithLikes, 
         });
     } catch (error) {
         return res.status(500).json({

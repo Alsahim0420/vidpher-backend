@@ -521,33 +521,43 @@ const avatar = (req, res) => {
 };
 
 const counters = async (req, res) => {
-    // Obtener el ID del usuario desde el token o los parámetros
-    let userId = req.user.id;
-
-    if (req.params.id) {
-        userId = req.params.id;
-    }
-
     try {
-        // Contar los documentos relacionados al usuario
-        const following = await Follow.countDocuments({ user: userId });
-        const followed = await Follow.countDocuments({ followed: userId });
-        const publications = await Publication.countDocuments({ user: userId });
+        const id = req.params.id || req.user.id;
 
-        // Responder con los contadores
+        // Buscar al usuario por ID y obtener su tipo
+        const userFound = await user.findById(id).select({ password: 0, otp: 0 });
+
+        if (!userFound) {
+            return res.status(404).send({
+                status: 'error',
+                message: 'User Not Found'
+            });
+        }
+
+        const following = await Follow.countDocuments({ user: id });
+        const followed = await Follow.countDocuments({ followed: id });
+        let publicationsCount = 0;
+
+        if (userFound.role === 2) {
+            publicationsCount = await Publication.countDocuments({ user: id });
+        } else if (userFound.role === 3) {
+            publicationsCount = await SavedPublication.countDocuments({ user: id });
+        }
+
         return res.status(200).json({
-            userId,
-            following,
-            followed,
-            publications
+            status: 'success',
+            userId: id,
+            counters: {
+                following,
+                followed,
+                publications: publicationsCount
+            }
         });
     } catch (err) {
-        // Capturar y responder con el error detallado
-        console.error("Error in counters:", err); // Para depuración
         return res.status(500).json({
-            status: "error",
-            message: "Internal Server Error",
-            error: err.message || "Unknown error"
+            status: 'error',
+            message: 'Query Error',
+            error: err.message
         });
     }
 };

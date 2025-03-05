@@ -260,7 +260,6 @@ const media = (req, res) => {
 
 const feed = async (req, res) => {
     try {
-        
         const userExists = await User.findById(req.user.id);
         if (!userExists) {
             return res.status(404).json({
@@ -269,12 +268,10 @@ const feed = async (req, res) => {
             });
         }
 
-        
         const myFollows = await followService.followUserIds(req.user.id);
 
-        
         const publications = await Publication.find({ user: { $in: myFollows.following } })
-            .sort({ createdAt: -1 })
+            .sort({ createdAt: -1 }) // Ordenar publicaciones de más reciente a más antiguo
             .populate({
                 path: "user",
                 select: "-password -__v -createdAt -token", 
@@ -284,11 +281,14 @@ const feed = async (req, res) => {
                 select: "-password -__v -createdAt -token", 
             });
 
-       
         const userId = req.user.id;
         const publicationsWithLikes = publications.map(publication => {
             const publicationObj = publication.toObject({ virtuals: true });
             publicationObj.isLiked = publication.likedBy.includes(userId);
+            
+            // Ordenar los comentarios del más reciente al más antiguo
+            publicationObj.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            
             return publicationObj;
         });
 
@@ -306,6 +306,7 @@ const feed = async (req, res) => {
         });
     }
 };
+
 
 
 
@@ -427,9 +428,15 @@ const addComment = async (req, res) => {
         const { text } = req.body;
         const userId = req.user.id;
 
+        const newComment = {
+            user: userId,
+            text,
+            createdAt: new Date() // ✅ Agregar timestamp al comentario
+        };
+
         const publication = await Publication.findByIdAndUpdate(
             publicationId,
-            { $push: { comments: { user: userId, text } } },
+            { $push: { comments: newComment } },
             { new: true }
         )
         .populate({
@@ -453,6 +460,7 @@ const addComment = async (req, res) => {
         res.status(500).json({ message: "Server Error" });
     }
 };
+
 
 
 

@@ -267,7 +267,9 @@ const profile = async (req, res) => {
                 });
         } else if (userFound.role === 3) {
             const savedPublications = await SavedPublication.find({ user: id })
-                .populate({ path: 'publication', populate: { path: 'user', select: '-password -otp' } });
+                .populate({ path: 'publication', populate:[ { path: 'user', select: '-password' },
+                    { path: 'comments.user' }
+                ] });
 
             publications = savedPublications.map(saved => saved.publication);
         }

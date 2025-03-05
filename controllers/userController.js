@@ -248,6 +248,10 @@ const profile = async (req, res) => {
         const followInfo = await followServices.followThisUser(req.user.id, id);
         const following = await Follow.countDocuments({ user: id });
         const followed = await Follow.countDocuments({ followed: id });
+
+        // ✅ Verificar si el usuario logueado sigue al usuario del perfil
+        const isFollowing = await Follow.exists({ user: req.user.id, followed: id });
+
         let publicationsCount = 0;
         let publications = [];
 
@@ -291,6 +295,7 @@ const profile = async (req, res) => {
                 followed,
                 publications: publicationsCount
             },
+            isFollowing: !!isFollowing, // ✅ Agregado
             publications: publicationsWithLikes,
             role: userFound.role
         });
@@ -303,6 +308,7 @@ const profile = async (req, res) => {
         });
     }
 };
+
 
 
 

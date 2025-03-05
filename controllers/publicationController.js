@@ -431,7 +431,7 @@ const addComment = async (req, res) => {
         const newComment = {
             user: userId,
             text,
-            createdAt: new Date() // ✅ Agregar timestamp al comentario
+            createdAt: new Date() 
         };
 
         const publication = await Publication.findByIdAndUpdate(
@@ -444,7 +444,7 @@ const addComment = async (req, res) => {
             select: '-password'
         })
         .populate({
-            path: 'user', // Traer toda la información del usuario de la publicación
+            path: 'user', 
             select: '-password'
         });
 

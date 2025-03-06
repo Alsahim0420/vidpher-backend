@@ -370,18 +370,16 @@ const update = async (req, res) => {
     const user_update = req.body;
     console.log(user_update);
 
-    // Eliminar campos sobrantes
+    // Eliminar campos innecesarios
     delete user_update.iat;
     delete user_update.exp;
     delete user_update.rol;
 
-    // Si no se envía imagen, establecerla en null
     if (!user_update.image || user_update.image.trim() === "") {
         user_update.image = null;
     }
 
     try {
-        // Obtener el usuario actual
         const existingUser = await user.findById(user_identity.id);
         if (!existingUser) {
             return res.status(404).json({
@@ -411,36 +409,14 @@ const update = async (req, res) => {
         // Guardar cambios y obtener el usuario actualizado
         const updatedUser = await user.findByIdAndUpdate(user_identity.id, user_update, { new: true });
 
-        // Contar seguidores y seguidos
-        const followingCount = await Follow.countDocuments({ user: user_identity.id });
-        const followedCount = await Follow.countDocuments({ followed: user_identity.id });
-        const publicationsCount = await Publication.countDocuments({ user: user_identity.id });
-
-        // Obtener publicaciones del usuario y expandir información del usuario en la publicación y comentarios
-        const userPublications = await Publication.find({ user: user_identity.id })
-            .populate({
-                path: "user", // Expande la información completa del usuario en la publicación
-                select: "-password", // Excluye la contraseña
-            })
-            .populate({
-                path: "comments",
-                populate: {
-                    path: "user",
-                    select: "-password",
-                },
-            })
-            .exec();
+        // Generar un nuevo token con la información actualizada
+        const newToken = jwt.createToken(updatedUser);
 
         return res.status(200).json({
             status: "success",
             message: "User Updated Successfully",
             user: updatedUser,
-            counters: {
-                following: followingCount,
-                followed: followedCount,
-                publications: publicationsCount,
-            },
-            publications: userPublications,
+            token: newToken 
         });
     } catch (error) {
         return res.status(500).json({
@@ -450,6 +426,7 @@ const update = async (req, res) => {
         });
     }
 };
+
 
 
 

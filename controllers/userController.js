@@ -375,10 +375,6 @@ const update = async (req, res) => {
     delete user_update.exp;
     delete user_update.rol;
 
-    if (!user_update.image || user_update.image.trim() === "") {
-        user_update.image = null;
-    }
-
     try {
         const existingUser = await user.findById(user_identity.id);
         if (!existingUser) {
@@ -386,6 +382,11 @@ const update = async (req, res) => {
                 status: "error",
                 message: "User Not Found",
             });
+        }
+
+        // ✅ Mantener la imagen actual si el usuario no envía una nueva
+        if (user_update.image === undefined || user_update.image === null || user_update.image.trim() === "") {
+            delete user_update.image; // Eliminamos la clave para que no se actualice
         }
 
         // Mantener los valores actuales si no se envían en la petición
@@ -426,6 +427,8 @@ const update = async (req, res) => {
         });
     }
 };
+
+
 
 
 

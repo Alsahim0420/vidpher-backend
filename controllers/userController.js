@@ -384,7 +384,7 @@ const update = async (req, res) => {
             });
         }
 
-        // ✅ Mantener la imagen actual si el usuario no envía una nueva
+        // ✅ Mantener la imagen actual si no se envía una nueva
         if (user_update.image === undefined || user_update.image === null || user_update.image.trim() === "") {
             delete user_update.image; // Eliminamos la clave para que no se actualice
         }
@@ -410,10 +410,56 @@ const update = async (req, res) => {
         // Guardar cambios y obtener el usuario actualizado
         const updatedUser = await user.findByIdAndUpdate(user_identity.id, user_update, { new: true });
 
+        let publications = [];
+        let publicationsCount = 0;
+
+        // ✅ Verificar el rol del usuario y obtener publicaciones
+        if (updatedUser.role === 2) {
+            // Usuario tipo 2: Traer sus publicaciones subidas
+            publications = await Publication.find({ user: user_identity.id })
+                .select('file likes likedBy comments createdAt user watchPublication text')
+                .sort({ createdAt: -1 })
+                .populate({
+                    path: 'comments.user',
+                    select: '-password'
+                })
+                .populate({
+                    path: 'user',
+                    select: '-password -otp'
+                });
+
+            publicationsCount = publications.length;
+        } else if (updatedUser.role === 3) {
+            // Usuario tipo 3: Traer publicaciones que ha guardado
+            const savedPublications = await SavedPublication.find({ user: user_identity.id })
+                .sort({ createdAt: -1 })
+                .populate({
+                    path: 'publication',
+                    populate: [
+                        { path: 'user', select: '-password' },
+                        { path: 'comments.user' }
+                    ]
+                });
+
+            publications = savedPublications.map(saved => saved.publication);
+            publicationsCount = publications.length;
+        }
+
+        // ✅ Preparar publicaciones con información del usuario autenticado
+        const userId = req.user.id;
+        const publicationsWithLikes = publications.map(publication => {
+            publication._locals = { userId };
+            return publication.toObject({ virtuals: true });
+        });
+
         return res.status(200).json({
             status: "success",
             message: "User Updated Successfully",
-            user: updatedUser
+            user: updatedUser,
+            counters: {
+                publications: publicationsCount
+            },
+            publications: publicationsWithLikes
         });
     } catch (error) {
         return res.status(500).json({

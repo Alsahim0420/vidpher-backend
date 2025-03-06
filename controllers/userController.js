@@ -386,7 +386,7 @@ const update = async (req, res) => {
 
         // ✅ Mantener la imagen actual si no se envía una nueva
         if (user_update.image === undefined || user_update.image === null || user_update.image.trim() === "") {
-            delete user_update.image; // Eliminamos la clave para que no se actualice
+            delete user_update.image;
         }
 
         // Mantener los valores actuales si no se envían en la petición
@@ -445,6 +445,13 @@ const update = async (req, res) => {
             publicationsCount = publications.length;
         }
 
+        // ✅ Obtener contadores de seguidores, seguidos y publicaciones
+        const following = await Follow.countDocuments({ user: user_identity.id });
+        const followed = await Follow.countDocuments({ followed: user_identity.id });
+
+        // ✅ Verificar si el usuario autenticado sigue a sí mismo (si es su perfil)
+        const isFollowing = await Follow.exists({ user: req.user.id, followed: user_identity.id });
+
         // ✅ Preparar publicaciones con información del usuario autenticado
         const userId = req.user.id;
         const publicationsWithLikes = publications.map(publication => {
@@ -457,8 +464,11 @@ const update = async (req, res) => {
             message: "User Updated Successfully",
             user: updatedUser,
             counters: {
+                following,
+                followed,
                 publications: publicationsCount
             },
+            isFollowing: !!isFollowing, // ✅ Agregado para verificar si sigue al usuario
             publications: publicationsWithLikes
         });
     } catch (error) {
@@ -469,7 +479,6 @@ const update = async (req, res) => {
         });
     }
 };
-
 
 
 

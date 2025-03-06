@@ -70,8 +70,6 @@ const upload = async (req, res) => {
         return res.status(200).json({
             status: "success",
             message: "New story successfully created",
-            story: populatedStory, // Devuelve la historia con el usuario poblado
-            imageUrl: result.secure_url,
         });
 
     } catch (err) {

@@ -410,14 +410,10 @@ const update = async (req, res) => {
         // Guardar cambios y obtener el usuario actualizado
         const updatedUser = await user.findByIdAndUpdate(user_identity.id, user_update, { new: true });
 
-        // Generar un nuevo token con la información actualizada
-        const newToken = jwt.createToken(updatedUser);
-
         return res.status(200).json({
             status: "success",
             message: "User Updated Successfully",
-            user: updatedUser,
-            token: newToken 
+            user: updatedUser
         });
     } catch (error) {
         return res.status(500).json({
@@ -427,12 +423,6 @@ const update = async (req, res) => {
         });
     }
 };
-
-
-
-
-
-
 
 
 

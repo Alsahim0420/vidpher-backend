@@ -8,13 +8,14 @@ const stripeWebhook = async (req, res) => {
     let event;
 
     try {
-        // ⚠️ Usar req.body directamente (Stripe CLI ya lo envía en raw)
-        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+        // ⚠ Convertir Buffer a string antes de la verificación de firma
+        const rawBody = req.body.toString();
+        event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
     } catch (err) {
         console.error("❌ Webhook signature verification failed:", err.message);
-        return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+        return res.status(400).json({ "error": "Webhook Error: " + err.message });
     }
-
+    
     console.log(`🔔 Evento recibido: ${event.type}`);
 
     try {
@@ -30,7 +31,7 @@ const stripeWebhook = async (req, res) => {
             if (payment) {
                 console.log("✅ Pago actualizado a 'succeeded' en MongoDB.");
             } else {
-                console.warn("⚠️ No se encontró el pago en MongoDB.");
+                console.warn("⚠ No se encontró el pago en MongoDB.");
             }
         }
 
@@ -45,7 +46,7 @@ const stripeWebhook = async (req, res) => {
             if (failedPayment) {
                 console.warn("❌ Pago fallido registrado en MongoDB.");
             } else {
-                console.warn("⚠️ No se encontró el pago fallido en MongoDB.");
+                console.warn("⚠ No se encontró el pago fallido en MongoDB.");
             }
         }
     } catch (dbError) {

@@ -8,14 +8,13 @@ const stripeWebhook = async (req, res) => {
     let event;
 
     try {
-        // ⚠ Convertir Buffer a string antes de la verificación de firma
-        const rawBody = req.body.toString();
-        event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
+        // ✅ Usar `req.body` directamente sin convertirlo
+        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
     } catch (err) {
         console.error("❌ Webhook signature verification failed:", err.message);
         return res.status(400).json({ "error": "Webhook Error: " + err.message });
     }
-    
+
     console.log(`🔔 Evento recibido: ${event.type}`);
 
     try {

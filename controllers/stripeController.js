@@ -8,7 +8,7 @@ const stripeWebhook = async (req, res) => {
     let event;
 
     try {
-        // Usar req.body directamente (Stripe CLI ya lo envía en raw)
+        // ⚠️ Usar req.body directamente (Stripe CLI ya lo envía en raw)
         event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
     } catch (err) {
         console.error("❌ Webhook signature verification failed:", err.message);

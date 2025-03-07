@@ -18,9 +18,11 @@ const puerto = 3900;
 // Configurar CORS
 app.use(cors());
 
-// ⚠️ Middleware para convertir el body a JSON (pero EXCLUYENDO el webhook de Stripe)
-app.use(express.json({ type: "application/json" }));
+// ⚠️ Middleware JSON para otras rutas (EXCLUYENDO webhooks)
+app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+const stripeRoutes = require("./routes/stripeRoutes");
 
 // Importar rutas
 const userRoutes = require('./routes/userRoutes');
@@ -32,7 +34,6 @@ const preferenceRoutes = require('./routes/preferenceRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const savedPublicationRoutes = require('./routes/savedPublicationRoutes');
 const suggestionRoutes = require('./routes/suggestionRoutes');
-const stripeRoutes = require('./routes/stripeRoutes');
 
 // Cargar rutas normales
 app.use('/api/user', userRoutes);
@@ -45,8 +46,8 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/savedPublication', savedPublicationRoutes);
 app.use('/api/suggestion', suggestionRoutes);
 
-// ⚠️ EXCLUIMOS el webhook de Stripe de `express.json()`
-app.use('/api/stripe', stripeRoutes); // El `raw()` ya está en `stripeRoutes.js`
+// ⚠️ Cargar rutas de Stripe asegurando que express.raw() se aplica solo en stripeRoutes.js
+app.use('/api/stripe', stripeRoutes);
 
 // Ruta de prueba
 app.get("/ruta-prueba", (req, res) => {

@@ -18,6 +18,9 @@ const puerto = 3900;
 // Configurar CORS
 app.use(cors());
 
+// ⚠️ Cargar rutas de Stripe asegurando que express.raw() se aplica solo en stripeRoutes.js
+app.use('/api/stripe', stripeRoutes);
+
 // ⚠️ Middleware JSON para otras rutas (EXCLUYENDO webhooks)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -46,8 +49,7 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/savedPublication', savedPublicationRoutes);
 app.use('/api/suggestion', suggestionRoutes);
 
-// ⚠️ Cargar rutas de Stripe asegurando que express.raw() se aplica solo en stripeRoutes.js
-app.use('/api/stripe', stripeRoutes);
+
 
 // Ruta de prueba
 app.get("/ruta-prueba", (req, res) => {

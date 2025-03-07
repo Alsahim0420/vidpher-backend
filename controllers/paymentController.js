@@ -121,22 +121,27 @@ const getPaymentStatus = async (req, res) => {
     try {
         const { paymentIntentId } = req.query;
 
-        // Buscar el pago en la base de datos
+        // 🔹 Validar que el paymentIntentId está presente
+        if (!paymentIntentId) {
+            return res.status(400).json({ error: "Se requiere el paymentIntentId" });
+        }
+
+        // 🔹 Buscar el pago en la base de datos
         const payment = await Payment.findOne({ paymentIntentId });
 
         if (!payment) {
+            console.warn("⚠ Pago no encontrado en la base de datos:", paymentIntentId);
             return res.status(404).json({ error: "Pago no encontrado" });
         }
 
+        console.log("✅ Estado del pago en la base de datos:", payment.status);
 
-        console.log("Estado real en Stripe:", payment.status);
-
-
+        // 🔹 Responder con el estado del pago
         res.json({ status: payment.status });
 
     } catch (error) {
-        console.error("Error:", error);
-        res.status(500).json({ error: error.message });
+        console.error("❌ Error al obtener el estado del pago:", error.message);
+        res.status(500).json({ error: "Error interno del servidor" });
     }
 };
 

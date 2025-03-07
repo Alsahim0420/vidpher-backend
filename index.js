@@ -44,9 +44,7 @@ app.use('/api/preference', preferenceRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/savedPublication', savedPublicationRoutes);
 app.use('/api/suggestion', suggestionRoutes);
-
-// ⚠️ IMPORTANTE: Stripe necesita que el cuerpo del webhook sea "raw" para verificar la firma
-app.post('/api/stripe', express.raw({ type: 'application/json' }), stripeRoutes);
+app.use('/api/stripe', stripeRoutes); 
 
 // Ruta de prueba
 app.get("/ruta-prueba", (req, res) => {

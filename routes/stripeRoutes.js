@@ -1,8 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const stripeController = require("../controllers/stripeController");
-const check = require('../middlewares/auth');
 
-router.post("/stripeWebhook",check.auth, stripeController.stripeWebhook);
+router.post("/stripeWebhook", express.raw({ type: "application/json" }), stripeController.stripeWebhook);
 
 module.exports = router;

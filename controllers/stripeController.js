@@ -8,11 +8,10 @@ const stripeWebhook = async (req, res) => {
     let event;
 
     try {
-        // Convertir el buffer a string antes de pasarlo a Stripe
-        const rawBody = req.body.toString();
-        event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
+        // ⚠️ Convertir req.body de Buffer antes de pasarlo a Stripe
+        event = stripe.webhooks.constructEvent(Buffer.from(req.body), sig, endpointSecret);
     } catch (err) {
-        console.error("❌ Webhook signature verification failed.", err.message);
+        console.error("❌ Webhook signature verification failed:", err.message);
         return res.status(400).json({ error: `Webhook Error: ${err.message}` });
     }
 
@@ -22,7 +21,6 @@ const stripeWebhook = async (req, res) => {
         if (event.type === "checkout.session.completed") {
             const session = event.data.object;
 
-            // Buscar el pago en la base de datos y actualizar estado
             const payment = await Payment.findOneAndUpdate(
                 { paymentIntentId: session.payment_intent },
                 { status: "succeeded" }

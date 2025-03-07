@@ -18,8 +18,8 @@ const puerto = 3900;
 // Configurar CORS
 app.use(cors());
 
-// Middleware para convertir los datos del body a objetos JS
-app.use(express.json());
+// ⚠️ Middleware para convertir el body a JSON (pero EXCLUYENDO el webhook de Stripe)
+app.use(express.json({ type: "application/json" }));
 app.use(express.urlencoded({ extended: true }));
 
 // Importar rutas
@@ -44,7 +44,9 @@ app.use('/api/preference', preferenceRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/savedPublication', savedPublicationRoutes);
 app.use('/api/suggestion', suggestionRoutes);
-app.use('/api/stripe', stripeRoutes); 
+
+// ⚠️ EXCLUIMOS el webhook de Stripe de `express.json()`
+app.use('/api/stripe', stripeRoutes); // El `raw()` ya está en `stripeRoutes.js`
 
 // Ruta de prueba
 app.get("/ruta-prueba", (req, res) => {

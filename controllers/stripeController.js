@@ -8,7 +8,9 @@ const stripeWebhook = async (req, res) => {
     let event;
 
     try {
-        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+        // Convertir el buffer a string antes de pasarlo a Stripe
+        const rawBody = req.body.toString();
+        event = stripe.webhooks.constructEvent(rawBody, sig, endpointSecret);
     } catch (err) {
         console.error("❌ Webhook signature verification failed.", err.message);
         return res.status(400).json({ error: `Webhook Error: ${err.message}` });
@@ -16,30 +18,40 @@ const stripeWebhook = async (req, res) => {
 
     console.log(`🔔 Evento recibido: ${event.type}`);
 
-    if (event.type === "checkout.session.completed") {
-        const session = event.data.object;
+    try {
+        if (event.type === "checkout.session.completed") {
+            const session = event.data.object;
 
-        // Buscar el pago en la base de datos y actualizar estado
-        const payment = await Payment.findOneAndUpdate(
-            { paymentIntentId: session.payment_intent },
-            { status: "succeeded" }
-        );
+            // Buscar el pago en la base de datos y actualizar estado
+            const payment = await Payment.findOneAndUpdate(
+                { paymentIntentId: session.payment_intent },
+                { status: "succeeded" }
+            );
 
-        if (payment) {
-            console.log("✅ Pago actualizado a 'succeeded' en MongoDB.");
-        } else {
-            console.warn("⚠️ No se encontró el pago en MongoDB.");
+            if (payment) {
+                console.log("✅ Pago actualizado a 'succeeded' en MongoDB.");
+            } else {
+                console.warn("⚠️ No se encontró el pago en MongoDB.");
+            }
         }
-    }
 
-    if (event.type === "payment_intent.payment_failed") {
-        const paymentIntent = event.data.object;
+        if (event.type === "payment_intent.payment_failed") {
+            const paymentIntent = event.data.object;
 
-        await Payment.findOneAndUpdate(
-            { paymentIntentId: paymentIntent.id },
-            { status: "failed" }
-        );
-        console.warn("❌ Pago fallido registrado en MongoDB.");
+            const failedPayment = await Payment.findOneAndUpdate(
+                { paymentIntentId: paymentIntent.id },
+                { status: "failed" }
+            );
+
+            if (failedPayment) {
+                console.warn("❌ Pago fallido registrado en MongoDB.");
+            } else {
+                console.warn("⚠️ No se encontró el pago fallido en MongoDB.");
+            }
+        }
+    } catch (dbError) {
+        console.error("❌ Error al actualizar la base de datos:", dbError.message);
+        return res.status(500).json({ error: "Error interno al procesar el evento." });
     }
 
     res.json({ received: true });

@@ -4,32 +4,31 @@ const Payment = require("../models/payment");
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 const stripeWebhook = async (req, res) => {
-    const sig = req.headers["stripe-signature"]
-    if (!sig) {
-        console.error("❌ No se encontró el encabezado stripe-signature.");
-        return res.status(400).json({ error: "Webhook Error: No stripe-signature header found." });
-    }
-    let event;
-    try {
-        // ✅ Asegurar que req.body es un Buffer antes de verificar la firma
-        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
-    } catch (err) {
-        console.error("❌ Webhook signature verification failed:", err.message);
-        return res.status(400).json({ error: "Webhook Error: " + err.message });
-    }
-
-    // ❌ Desactivamos la validación de firma SOLO para pruebas
+    // const sig = req.headers["stripe-signature"]
+    // if (!sig) {
+    //     console.error("❌ No se encontró el encabezado stripe-signature.");
+    //     return res.status(400).json({ error: "Webhook Error: No stripe-signature header found." });
+    // }
     // let event;
     // try {
-    //     // 🔹 Convertir `req.body` a JSON si es un Buffer o String
-    //     const rawBody = req.body instanceof Buffer ? req.body.toString() : req.body;
-    //     event = typeof rawBody === "string" ? JSON.parse(rawBody) : rawBody;
-
-    //     console.log(`🔔 Evento recibido sin verificar firma: ${event.type}`);
+    //     // ✅ Asegurar que req.body es un Buffer antes de verificar la firma
+    //     event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
     // } catch (err) {
-    //     console.error("❌ Error procesando el webhook:", err.message);
-    //     return res.status(400).json({ error: "Error procesando el webhook." });
+    //     console.error("❌ Webhook signature verification failed:", err.message);
+    //     return res.status(400).json({ error: "Webhook Error: " + err.message });
     // }
+
+    //❌ Desactivamos la validación de firma SOLO para pruebas
+    let event;
+    try {
+        // 🔹 Convertir `req.body` a JSON si es un Buffer o String
+        const rawBody = req.body instanceof Buffer ? req.body.toString() : req.body;
+        event = typeof rawBody === "string" ? JSON.parse(rawBody) : rawBod
+        console.log(`🔔 Evento recibido sin verificar firma: ${event.type}`);
+    } catch (err) {
+        console.error("❌ Error procesando el webhook:", err.message);
+        return res.status(400).json({ error: "Error procesando el webhook." });
+    }
 
 
 

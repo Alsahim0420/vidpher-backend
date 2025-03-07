@@ -18,16 +18,16 @@ const puerto = 3900;
 // Configurar CORS
 app.use(cors());
 
-// ⚠️ Cargar rutas de Stripe asegurando que express.raw() se aplica solo en stripeRoutes.js
-app.use('/api/stripe', stripeRoutes);
+// ⚠ Middleware especial SOLO para el webhook de Stripe (antes de cargar las rutas)
+app.use('/api/stripe/stripeWebhook', express.raw({ type: "application/json" }));
 
-// ⚠️ Middleware JSON para otras rutas (EXCLUYENDO webhooks)
-app.use(express.json());
+// Middleware JSON para todas las rutas EXCEPTO webhooks
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 const stripeRoutes = require("./routes/stripeRoutes");
 
-// Importar rutas
+// Importar rutas normales
 const userRoutes = require('./routes/userRoutes');
 const followRoutes = require('./routes/followRoutes');
 const publicationRoutes = require('./routes/publicationRoutes');
@@ -49,7 +49,8 @@ app.use('/api/payment', paymentRoutes);
 app.use('/api/savedPublication', savedPublicationRoutes);
 app.use('/api/suggestion', suggestionRoutes);
 
-
+// ⚠ Cargar rutas de Stripe después de excluir JSON en webhooks
+app.use('/api/stripe', stripeRoutes);
 
 // Ruta de prueba
 app.get("/ruta-prueba", (req, res) => {
@@ -58,7 +59,7 @@ app.get("/ruta-prueba", (req, res) => {
 
 // Iniciar servidor
 app.listen(puerto, () => {
-    console.log(`🚀 Servidor corriendo en http://localhost:${puerto}`);
+    console.log("🚀 Servidor corriendo en http://localhost:${puerto}");
     console.log('⏳ Iniciando tareas programadas...');
     cronJobs;
 });

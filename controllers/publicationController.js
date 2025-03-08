@@ -269,9 +269,15 @@ const feed = async (req, res) => {
             });
         }
 
+        // Obtener los usuarios seguidos
         const myFollows = await followService.followUserIds(req.user.id);
 
-        const publications = await Publication.find({ user: { $in: myFollows.following } })
+        // Filtrar usuarios con payment_status en true (seguidores y no seguidores)
+        const validUsers = await User.find({ payment_status: true }).select('_id');
+        const validUserIds = validUsers.map(user => user._id);
+
+        // Obtener publicaciones solo de usuarios con payment_status en true (seguidores o no)
+        const publications = await Publication.find({ user: { $in: validUserIds } })
             .sort({ createdAt: -1 })
             .populate({
                 path: "user",
@@ -283,25 +289,26 @@ const feed = async (req, res) => {
             });
 
         const userId = req.user.id;
-        
 
-        // Obtener todas las publicaciones guardadas del usuario logueado de una sola consulta
+        // Obtener todas las publicaciones guardadas del usuario logueado
         const savedPublications = await SavedPublication.find({ user: userId })
             .select("publication")
             .lean();
 
-        const savedPublicationIds = new Set(savedPublications.map(sp => sp.publication.toString())); // Usamos un Set para búsqueda eficiente
+        const savedPublicationIds = new Set(savedPublications.map(sp => sp.publication.toString()));
+        const uniquePublications = new Set(); // Set para evitar duplicados
 
-        const publicationsWithMeta = publications.map(publication => {
+        const publicationsWithMeta = publications.filter(publication => {
+            if (uniquePublications.has(publication._id.toString())) {
+                return false; // Evita agregar publicaciones repetidas
+            }
+            uniquePublications.add(publication._id.toString());
+            
             const publicationObj = publication.toObject({ virtuals: true });
-
             publicationObj.isLiked = publication.likedBy.includes(userId);
             publicationObj.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-            // Revisamos si la publicación está en el Set de publicaciones guardadas
             publicationObj.isSaved = savedPublicationIds.has(publication._id.toString());
-
-            return publicationObj;
+            return true;
         });
 
         return res.status(200).json({
@@ -309,7 +316,6 @@ const feed = async (req, res) => {
             message: "List of posts in the feed",
             publications: publicationsWithMeta,
         });
-
     } catch (error) {
         return res.status(500).json({
             status: "error",
@@ -318,9 +324,6 @@ const feed = async (req, res) => {
         });
     }
 };
-
-
-
 
 
 

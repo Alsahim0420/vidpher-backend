@@ -20,18 +20,18 @@ const stripeWebhook = async (req, res) => {
     }
 
 
-    // //❌ Desactivamos la validación de firma SOLO para pruebas
-    // let event;
-    // try {
-        // // 🔹 Convertir `req.body` a JSON si es un Buffer o String
-        // const rawBody = req.body instanceof Buffer ? req.body.toString() : req.body;
-        // event = typeof rawBody === "string" ? JSON.parse(rawBody) : rawBody; // ✅ Corrige error de sintaxis
-
-        // console.log(`🔔 Evento recibido sin verificar firma: ${event.type}`);
-    // } catch (err) {
-        // console.error("❌ Error procesando el webhook:", err.message);
-        // return res.status(400).json({ error: "Error procesando el webhook." });
-    // }
+    //❌ Desactivamos la validación de firma SOLO para pruebas
+    //let event;
+    //try {
+    // // 🔹 Convertir `req.body` a JSON si es un Buffer o String
+    //    const rawBody = req.body instanceof Buffer ? req.body.toString() : req.body;
+    //    event = typeof rawBody === "string" ? JSON.parse(rawBody) : rawBody; // ✅ Corrige error de sintaxis
+    //
+    //    console.log(`🔔 Evento recibido sin verificar firma: ${event.type}`);
+    //} catch (err) {
+    //    console.error("❌ Error procesando el webhook:", err.message);
+    //    return res.status(400).json({ error: "Error procesando el webhook." });
+    //}
 
     console.log(`🔔 Evento recibido: ${event.type}`);
 
@@ -89,7 +89,7 @@ const stripeWebhook = async (req, res) => {
                 console.warn("⚠ No se encontró el pago en la base de datos.");
             }
         }
-        
+
     } catch (dbError) { // ✅ Se agregó un bloque catch para capturar errores en el try principal
         console.error("❌ Error al procesar el webhook:", dbError.message);
         return res.status(500).json({ error: "Error interno al procesar el evento." });

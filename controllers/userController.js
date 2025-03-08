@@ -11,13 +11,12 @@ const SavedPublication = require('../models/savedPublication');
 const Publication = require("../models/publication")
 const Follow = require("../models/follow")
 const Preferences = require('../models/preferences');
-const Suggestions = require('../models/suggestions');
+const Payment = require("../models/payment");
 
 //Importar servicios
 const jwt = require('../services/jwt');
 const followServices = require("../services/followService");
 const validate = require("../helpers/validate");
-const nodemailer = require('nodemailer');
 const sendEmail = require("../mailer");
 const generateOtp = require("../utils/otp");
 
@@ -163,7 +162,7 @@ const login = async (req, res) => {
                     { name: identifier }
                 ]
             })
-            .select('username email password role image name bio fcmToken');
+            .select('username email password role image name bio fcmToken payment_status');
 
         // Si el usuario no existe
         if (!userFound) {
@@ -222,7 +221,7 @@ const profile = async (req, res) => {
     try {
         const id = req.params.id;
 
-        // Buscar al usuario por ID y obtener su tipo
+        // Buscar al usuario por ID y excluir password y otp
         const userFound = await user.findById(id).select({ password: 0, otp: 0 });
 
         if (!userFound) {
@@ -230,6 +229,19 @@ const profile = async (req, res) => {
                 status: 'error',
                 message: 'User Not Found'
             });
+        }
+
+        // ✅ Buscar en Payment por userId en lugar de solo user
+        const payment = await Payment.findOne({ userId: id }) // Aquí cambiamos `user` por `userId`
+            .sort({ createdAt: -1 });
+
+        if (payment && 
+            (payment.status === 'succeeded' || payment.status === 'completed') &&
+            !userFound.payment_status) {
+            
+            // Actualizar payment_status a true en el modelo de usuario
+            userFound.payment_status = true;
+            await userFound.save();
         }
 
         const followInfo = await followServices.followThisUser(req.user.id, id);
@@ -244,7 +256,7 @@ const profile = async (req, res) => {
 
         if (userFound.role === 2) {
             publications = await Publication.find({ user: id })
-                .select('file likes likedBy comments createdAt user watchPublication text')
+                .select('file likes likedBy comments createdAt user watchPublication text payment_status')
                 .sort({ createdAt: -1 })
                 .populate({
                     path: 'comments.user',
@@ -283,7 +295,7 @@ const profile = async (req, res) => {
                 followed,
                 publications: publicationsCount
             },
-            isFollowing: !!isFollowing, // ✅ Agregado
+            isFollowing: !!isFollowing, 
             publications: publicationsWithLikes,
             role: userFound.role
         });
@@ -404,7 +416,7 @@ const update = async (req, res) => {
         if (updatedUser.role === 2) {
             // Usuario tipo 2: Traer sus publicaciones subidas
             publications = await Publication.find({ user: user_identity.id })
-                .select('file likes likedBy comments createdAt user watchPublication text')
+                .select('file likes likedBy comments createdAt user watchPublication text payment_status')
                 .sort({ createdAt: -1 })
                 .populate({
                     path: 'comments.user',

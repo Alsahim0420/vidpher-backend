@@ -32,11 +32,29 @@ const UserSchema = new Schema({
     },
     otp: String,
     bio: String,
-    fcmToken: { type: String },
-    gender: { type: String, default: "" },
-    country: { type: String, default: "" },
-    city: { type: String, default: "" },
-    cellphone: { type: String, default: "" },
+    fcmToken: { 
+        type: String 
+    },
+    gender: { 
+        type: String, 
+        default: "" 
+    },
+    country: { 
+        type: String, 
+        default: "" 
+    },
+    city: { 
+        type: String, 
+        default: "" 
+    },
+    cellphone: { 
+        type: String, 
+        default: "" 
+    },
+    payment_status: { 
+        type: Boolean, 
+        default: false 
+    }
 });
 
 UserSchema.plugin(mongoosePaginate);

@@ -261,7 +261,9 @@ const media = (req, res) => {
 
 const feed = async (req, res) => {
     try {
-        const user = await User.findById(req.user.id);
+        const userId = req.user.id.toString(); // Asegurar que userId sea string
+        
+        const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({
                 status: "error",
@@ -269,14 +271,11 @@ const feed = async (req, res) => {
             });
         }
 
-        // Obtener los usuarios seguidos
-        const myFollows = await followService.followUserIds(req.user.id);
-
-        // Filtrar usuarios con payment_status en true (seguidores y no seguidores)
+        // Obtener los usuarios con payment_status en true
         const validUsers = await User.find({ payment_status: true }).select('_id');
         const validUserIds = validUsers.map(user => user._id);
 
-        // Obtener publicaciones solo de usuarios con payment_status en true (seguidores o no)
+        // Obtener publicaciones solo de esos usuarios
         const publications = await Publication.find({ user: { $in: validUserIds } })
             .sort({ createdAt: -1 })
             .populate({
@@ -288,27 +287,22 @@ const feed = async (req, res) => {
                 select: "-password -__v -createdAt -token",
             });
 
-        const userId = req.user.id;
-
-        // Obtener todas las publicaciones guardadas del usuario logueado
+        // Obtener publicaciones guardadas del usuario logueado
         const savedPublications = await SavedPublication.find({ user: userId })
             .select("publication")
             .lean();
-
         const savedPublicationIds = new Set(savedPublications.map(sp => sp.publication.toString()));
-        const uniquePublications = new Set(); // Set para evitar duplicados
 
-        const publicationsWithMeta = publications.filter(publication => {
-            if (uniquePublications.has(publication._id.toString())) {
-                return false; // Evita agregar publicaciones repetidas
-            }
-            uniquePublications.add(publication._id.toString());
-            
+        const publicationsWithMeta = publications.map(publication => {
             const publicationObj = publication.toObject({ virtuals: true });
-            publicationObj.isLiked = publication.likedBy.includes(userId);
-            publicationObj.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            // 🔥 **Corrección aquí:** Usamos `.some()` y `.toString()` para comparar correctamente
+            publicationObj.isLiked = publication.likedBy.some(likedUser => likedUser.toString() === userId);
+
             publicationObj.isSaved = savedPublicationIds.has(publication._id.toString());
-            return true;
+            publicationObj.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+            return publicationObj;
         });
 
         return res.status(200).json({
@@ -324,6 +318,7 @@ const feed = async (req, res) => {
         });
     }
 };
+
 
 
 

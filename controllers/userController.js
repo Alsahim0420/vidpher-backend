@@ -638,7 +638,6 @@ const resetPassword = async (req, res) => {
 
         return res.status(200).json({
             message: 'Successfully updated password',
-            user: foundUser
         });
     } catch (error) {
         console.error(error);

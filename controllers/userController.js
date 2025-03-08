@@ -18,21 +18,8 @@ const jwt = require('../services/jwt');
 const followServices = require("../services/followService");
 const validate = require("../helpers/validate");
 const nodemailer = require('nodemailer');
-
-// Configura el transporter (aquí usamos Gmail como ejemplo)
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: 'vidpherotp@gmail.com', // Tu dirección de correo electrónico
-        pass: 'Vidpher123#' // Tu contraseña de correo electrónico
-    }
-});
-
-// Función para generar un código OTP
-const generateOtp = () => {
-    return Math.floor(1000 + Math.random() * 9000).toString(); // Código de 4 dígitos
-};
-
+const sendEmail = require("../mailer");
+const generateOtp = require("../utils/otp");
 
 //acciones de prueba 
 const prueba_user = (req, res) => {
@@ -607,7 +594,7 @@ const requestPasswordReset = async (req, res) => {
         // Buscar al usuario por email
         const foundUser = await user.findOne({ email });
         if (!foundUser) {
-            return res.status(404).json({ message: 'User Not Found' });
+            return res.status(404).json({ message: "User Not Found" });
         }
 
         // Generar el OTP y guardarlo en el usuario
@@ -615,28 +602,13 @@ const requestPasswordReset = async (req, res) => {
         foundUser.otp = otp;
         await foundUser.save();
 
-        // Configurar el correo electrónico
-        const mailOptions = {
-            from: 'tucorreo@gmail.com', // Remitente
-            to: email, // Destinatario
-            subject: 'Recuperación de Contraseña', // Asunto
-            text: `Tu OTP para recuperar la contraseña es: ${otp}` // Cuerpo del correo
-        };
+        // Enviar el correo con el OTP
+        await sendEmail(email, "Recuperación de Contraseña", `Tu OTP para recuperar la contraseña es: ${otp}`);
 
-        // Enviar el correo electrónico
-        transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-                console.error('Error enviando el correo:', error);
-                return res.status(500).json({ message: 'Error sending email' });
-            } else {
-                console.log('Correo enviado:', info.response);
-                return res.status(200).json({ message: 'OTP sent. Check your email.' });
-            }
-        });
-
+        res.status(200).json({ message: "OTP sent. Check your email." });
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        res.status(500).json({ message: "Server Error" });
     }
 };
 

@@ -1,15 +1,18 @@
 const nodemailer = require("nodemailer");
+require("dotenv").config(); // Cargar variables de entorno
 
-// Configura el transporter (puedes usar Gmail, Outlook, o cualquier otro servicio de correo)
+// Configurar transporter con Hostinger
 const transporter = nodemailer.createTransport({
-    service: "gmail", // Puedes usar "outlook", "yahoo", etc.
+    host: "smtp.hostinger.com", // Servidor SMTP de Hostinger
+    port: 465, // Usar 465 para SSL o 587 para TLS
+    secure: true, // true para 465, false para 587
     auth: {
-        user: process.env.EMAIL_USER, // Tu correo electrónico
-        pass: process.env.EMAIL_PASSWORD, // Tu contraseña de aplicación (no la contraseña normal)
+        user: process.env.EMAIL_USER, // Tu correo en Hostinger
+        pass: process.env.EMAIL_PASSWORD, // La contraseña del correo en Hostinger
     },
 });
 
-// Función para enviar el correo electrónico
+// Función para enviar correos electrónicos
 const sendEmail = async (to, subject, text) => {
     try {
         const mailOptions = {
@@ -21,11 +24,12 @@ const sendEmail = async (to, subject, text) => {
 
         // Enviar el correo
         await transporter.sendMail(mailOptions);
-        console.log("Correo enviado exitosamente");
+        console.log("Correo enviado exitosamente a", to);
     } catch (error) {
         console.error("Error al enviar el correo:", error);
         throw error;
     }
 };
 
+// Exportar la función para usarla en otras partes de la aplicación
 module.exports = sendEmail;

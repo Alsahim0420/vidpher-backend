@@ -14,10 +14,9 @@ router.post("/register", userController.register);
 router.post("/login", userController.login);
 router.get("/profile/:id", check.auth, userController.profile);
 router.get("/list/:page?", check.auth, userController.list);
-router.put("/update", check.auth, userController.update);
 
-// Ruta para subir avatar usando Cloudinary
-router.post("/upload", [check.auth, uploads.single("file0")], uploadAvatar);
+// ✅ Ruta única para actualizar usuario y subir imagen
+router.put("/update", [check.auth, uploads.single("file0")], userController.update);
 
 router.get("/avatar/:file", userController.avatar);
 router.get("/counters/:id", check.auth, userController.counters);

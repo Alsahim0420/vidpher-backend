@@ -367,6 +367,7 @@ const list = async (req, res) => {
 const update = async (req, res) => {
     const user_identity = req.user;
     const user_update = req.body;
+
     console.log(user_update);
 
     // Eliminar campos innecesarios
@@ -384,11 +385,20 @@ const update = async (req, res) => {
         }
 
         // ✅ Mantener la imagen actual si no se envía una nueva
-        if (user_update.image === undefined || user_update.image === null || user_update.image.trim() === "") {
-            delete user_update.image;
+        if (!req.file) {
+            user_update.image = existingUser.image;
+        } else {
+            // Subir nueva imagen a Cloudinary
+            const result = await cloudinary.uploader.upload(req.file.path, { folder: 'avatars' });
+
+            // Eliminar archivo temporal
+            fs.unlinkSync(req.file.path);
+
+            // Actualizar la imagen en el usuario
+            user_update.image = result.secure_url;
         }
 
-        // Mantener los valores actuales si no se envían en la petición
+        // Mantener valores actuales si no se envían en la petición
         Object.keys(existingUser._doc).forEach(key => {
             if (user_update[key] === undefined) {
                 user_update[key] = existingUser[key];
@@ -414,31 +424,17 @@ const update = async (req, res) => {
 
         // ✅ Verificar el rol del usuario y obtener publicaciones
         if (updatedUser.role === 2) {
-            // Usuario tipo 2: Traer sus publicaciones subidas
             publications = await Publication.find({ user: user_identity.id })
-                .select('file likes likedBy comments createdAt user watchPublication text payment_status')
+                .select('-password')
                 .sort({ createdAt: -1 })
-                .populate({
-                    path: 'comments.user',
-                    select: '-password'
-                })
-                .populate({
-                    path: 'user',
-                    select: '-password -otp'
-                });
+                .populate({ path: 'comments.user', select: '-password' })
+                .populate({ path: 'user', select: '-password -otp' });
 
             publicationsCount = publications.length;
         } else if (updatedUser.role === 3) {
-            // Usuario tipo 3: Traer publicaciones que ha guardado
             const savedPublications = await SavedPublication.find({ user: user_identity.id })
                 .sort({ createdAt: -1 })
-                .populate({
-                    path: 'publication',
-                    populate: [
-                        { path: 'user', select: '-password' },
-                        { path: 'comments.user' }
-                    ]
-                });
+                .populate({ path: 'publication', populate: [{ path: 'user', select: '-password' }, { path: 'comments.user' }] });
 
             publications = savedPublications.map(saved => saved.publication);
             publicationsCount = publications.length;
@@ -448,7 +444,7 @@ const update = async (req, res) => {
         const following = await Follow.countDocuments({ user: user_identity.id });
         const followed = await Follow.countDocuments({ followed: user_identity.id });
 
-        // ✅ Verificar si el usuario autenticado sigue a sí mismo (si es su perfil)
+        // ✅ Verificar si el usuario autenticado sigue al perfil actualizado
         const isFollowing = await Follow.exists({ user: req.user.id, followed: user_identity.id });
 
         // ✅ Preparar publicaciones con información del usuario autenticado
@@ -467,7 +463,7 @@ const update = async (req, res) => {
                 followed,
                 publications: publicationsCount
             },
-            isFollowing: !!isFollowing, // ✅ Agregado para verificar si sigue al usuario
+            isFollowing: !!isFollowing,
             publications: publicationsWithLikes
         });
     } catch (error) {
@@ -483,55 +479,7 @@ const update = async (req, res) => {
 
 
 
-const updateAvatar = async (userId, avatarUrl) => {
-    try {
-        // Buscar y actualizar al usuario con la URL del avatar
-        const updatedUser = await user.findByIdAndUpdate(
-            userId, // Filtro por el ID del usuario
-            { image: avatarUrl }, // Campo a actualizar
-            { new: true } // Devuelve el documento actualizado
-        );
 
-        if (!updatedUser) {
-            throw new Error('User not found to update avatar');
-        }
-
-        return updatedUser;
-    } catch (error) {
-        console.error('Error updating avatar:', error.message);
-        throw error;
-    }
-};
-
-
-const upload = async (req, res) => {
-    try {
-        // Verifica que se haya subido un archivo
-        if (!req.file) {
-            return res.status(400).json({ message: "No file uploaded." });
-        }
-
-        // Subir archivo a Cloudinary
-        const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: 'avatars', // Carpeta opcional en Cloudinary
-        });
-
-        // Eliminar archivo temporal
-        fs.unlinkSync(req.file.path);
-
-        // Llama al controlador para actualizar el usuario con la URL del avatar
-        const updatedUser = await user.updateAvatar(req.user.id, result.secure_url);
-
-        res.status(200).json({
-            message: "Avatar uploaded successfully.",
-            avatarUrl: result.secure_url,
-            user: updatedUser,
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: "Error uploading avatar." });
-    }
-};
 
 const avatar = (req, res) => {
     // Sacar el parámetro
@@ -822,12 +770,10 @@ module.exports = {
     profile,
     list,
     update,
-    upload,
     avatar,
     counters,
     requestPasswordReset,
     resetPassword,
-    updateAvatar,
     countUsersByRole,
     updateFcmToken,
     searchAll,

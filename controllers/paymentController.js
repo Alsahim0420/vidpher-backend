@@ -19,7 +19,9 @@ const createPayment = async (req, res) => {
             paymentUrl = "https://buy.stripe.com/test_9AQ6oY9Ao3xDcyA6oo";
         } else if (planNumber === 2) {
             paymentUrl = "https://buy.stripe.com/test_dR6aFe13S6JP8ik8wx";
-        } else {
+        } else if (planNumber== 3) {
+            paymentUrl = "https://buy.stripe.com/test_eVa14EbIwd8d424aEG";
+        }else {
             return res.status(400).json({ error: "Plan no válido" });
         }
 

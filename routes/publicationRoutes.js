@@ -5,8 +5,17 @@ const publicationController = require('../controllers/publicationController');
 const check = require("../middlewares/auth");
 
 
-// Configuración de subida temporal
-const uploads = multer({ storage: multer.memoryStorage() });
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/'); // Asegúrate de que esta carpeta exista
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+
+const uploads = multer({ storage: storage });
+
 
 // Definir las rutas de la API
 router.get("/prueba_publication", publicationController.prueba_publication);

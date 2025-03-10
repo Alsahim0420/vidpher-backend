@@ -3,10 +3,18 @@ const router = express.Router();
 const multer = require('multer');
 const userController = require('../controllers/userController');
 const check = require('../middlewares/auth');
-const uploadAvatar = require('../middlewares/uploadAvatar');
 
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/'); // Asegúrate de que esta carpeta exista
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
 
-const uploads = multer({ storage: multer.memoryStorage() });
+const uploads = multer({ storage: storage });
+
 
 // Definir las rutas de la API
 router.get("/prueba_user", check.auth, userController.prueba_user);

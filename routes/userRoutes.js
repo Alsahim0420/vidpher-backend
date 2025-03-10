@@ -3,17 +3,19 @@ const router = express.Router();
 const multer = require('multer');
 const userController = require('../controllers/userController');
 const check = require('../middlewares/auth');
+const path = require("path");
+
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/'); // Asegúrate de que esta carpeta exista
+    destination: function (req, file, cb) {
+        cb(null, path.join(__dirname, "uploads")); // Asegurar la ruta correcta
     },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + "-" + file.originalname);
     }
 });
 
-const uploads = multer({ storage: storage });
+const upload = multer({ storage });
 
 
 // Definir las rutas de la API
@@ -24,7 +26,7 @@ router.get("/profile/:id", check.auth, userController.profile);
 router.get("/list/:page?", check.auth, userController.list);
 
 // ✅ Ruta única para actualizar usuario y subir imagen
-router.put("/update", [check.auth, uploads.single("file0")], userController.update);
+router.put("/update", [check.auth, upload.single("file0")], userController.update);
 
 router.get("/avatar/:file", userController.avatar);
 router.get("/counters/:id", check.auth, userController.counters);

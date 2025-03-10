@@ -3,20 +3,22 @@ const router = express.Router();
 const multer = require('multer');
 const storyController = require('../controllers/storyController');
 const check = require("../middlewares/auth");
+const path = require("path");
+
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/'); // Asegúrate de que esta carpeta exista
+    destination: function (req, file, cb) {
+        cb(null, path.join(__dirname, "uploads")); // Asegurar la ruta correcta
     },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + "-" + file.originalname);
     }
 });
 
-const uploads = multer({ storage: storage });
+const upload = multer({ storage });
 
 
-router.post("/upload", [check.auth, uploads.single("file0")], storyController.upload);
+router.post("/upload", [check.auth, upload.single("file0")], storyController.upload);
 router.get("/allStories", check.auth, storyController.allStories);
 
 

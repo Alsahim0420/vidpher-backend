@@ -3,23 +3,26 @@ const router = express.Router();
 const multer = require('multer');
 const publicationController = require('../controllers/publicationController');
 const check = require("../middlewares/auth");
+const path = require("path");
+
 
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, 'uploads/'); // Asegúrate de que esta carpeta exista
+    destination: function (req, file, cb) {
+        cb(null, path.join(__dirname, "uploads")); // Asegurar la ruta correcta
     },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + '-' + file.originalname);
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + "-" + file.originalname);
     }
 });
 
-const uploads = multer({ storage: storage });
+const upload = multer({ storage });
+
 
 
 // Definir las rutas de la API
 router.get("/prueba_publication", publicationController.prueba_publication);
-router.post("/save", [check.auth, uploads.single("file0")], publicationController.save);
+router.post("/save", [check.auth, upload.single("file0")], publicationController.save);
 router.get("/detail/:id", check.auth, publicationController.detail);
 router.delete("/remove/:id", check.auth, publicationController.remove);
 router.get("/user/:id/:page?", check.auth, publicationController.user);
@@ -31,7 +34,7 @@ router.put('/update/:publicationId/toggle/watch', check.auth, publicationControl
 
 //Dashboard
 router.get("/allPublications", check.auth, publicationController.allPublications);
-router.put('/updatePublication/:id', [check.auth, uploads.single("file0")], publicationController.updatePublication);
+router.put('/updatePublication/:id', [check.auth, upload.single("file0")], publicationController.updatePublication);
 
 // Exportar el módulo de rutas
 module.exports = router;

@@ -6,7 +6,7 @@ const check = require("../middlewares/auth");
 
 
 // Configuración de subida temporal
-const uploads = multer({ dest: 'temp/' });
+const uploads = multer({ storage: multer.memoryStorage() });
 
 // Definir las rutas de la API
 router.get("/prueba_publication", publicationController.prueba_publication);

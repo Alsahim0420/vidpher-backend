@@ -6,7 +6,7 @@ const check = require('../middlewares/auth');
 const uploadAvatar = require('../middlewares/uploadAvatar');
 
 
-const uploads = multer({ dest: 'temp/'});
+const uploads = multer({ storage: multer.memoryStorage() });
 
 // Definir las rutas de la API
 router.get("/prueba_user", check.auth, userController.prueba_user);

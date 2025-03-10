@@ -3,6 +3,8 @@ const router = express.Router();
 const multer = require('multer');
 const userController = require('../controllers/userController');
 const check = require('../middlewares/auth');
+const path = require("path");
+
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -24,7 +26,7 @@ router.get("/profile/:id", check.auth, userController.profile);
 router.get("/list/:page?", check.auth, userController.list);
 
 // ✅ Ruta única para actualizar usuario y subir imagen
-router.put("/update", [check.auth, uploads.single("file0")], userController.update);
+router.put("/update", [check.auth, upload.single("file0")], userController.update);
 
 router.get("/avatar/:file", userController.avatar);
 router.get("/counters/:id", check.auth, userController.counters);

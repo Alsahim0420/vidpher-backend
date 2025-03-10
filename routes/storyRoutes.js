@@ -4,8 +4,17 @@ const multer = require('multer');
 const storyController = require('../controllers/storyController');
 const check = require("../middlewares/auth");
 
-// Configuración de subida temporal
-const uploads = multer({ storage: multer.memoryStorage() });
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, 'uploads/'); // Asegúrate de que esta carpeta exista
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+
+const uploads = multer({ storage: storage });
+
 
 router.post("/upload", [check.auth, uploads.single("file0")], storyController.upload);
 router.get("/allStories", check.auth, storyController.allStories);

@@ -27,7 +27,7 @@ const createPayment = async (req, res) => {
 
         console.log("📌 Datos antes de crear PaymentIntent:", { userId, plan: planNumber });
 
-        // ✅ Crear `PaymentIntent`
+        // ✅ Crear PaymentIntent con metadata
         const paymentIntent = await stripe.paymentIntents.create({
             amount,
             currency,
@@ -38,24 +38,17 @@ const createPayment = async (req, res) => {
         console.log("🔹 Nuevo PaymentIntent creado en Stripe:", paymentIntent.id);
         console.log("🔍 Metadata enviada en el PaymentIntent:", paymentIntent.metadata);
 
-        // ✅ Guardar el pago en MongoDB en estado "pending"
-        const payment = new Payment({
-            paymentIntentId: paymentIntent.id,
-            userId,
-            plan: planNumber,
-            amount: amount,
-            currency: currency,
-            status: "pending",
-            paymentUrl // 🔹 Guardamos la URL en la base de datos
+        // 🔄 **Actualizar el PaymentIntent** para asegurarse de que la metadata se mantenga
+        console.log("🔄 Actualizando PaymentIntent con metadata...");
+        await stripe.paymentIntents.update(paymentIntent.id, {
+            metadata: { userId, plan: planNumber }
         });
-
-        await payment.save();
-        console.log("✅ Pago almacenado en MongoDB con estado 'pending'.");
+        console.log("✅ PaymentIntent actualizado correctamente.");
 
         res.status(201).json({
             message: "Pago iniciado",
             paymentIntentId: paymentIntent.id,
-            paymentUrl // 🔹 Enviamos la URL al cliente para redirigirlo al pago
+            paymentUrl
         });
 
     } catch (error) {
@@ -63,7 +56,6 @@ const createPayment = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-
 
 
 

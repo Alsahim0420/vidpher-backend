@@ -154,12 +154,12 @@ const changePaymentStatus = async (req, res) => {
             return res.status(400).json({ error: "paymentIntentId es requerido" });
         }
 
-        const payment = await Payment.findById(paymentIntentId); // 🔹 Buscar por `_id`
+        const payment = await Payment.findOne({ paymentIntentId }); // 🔹 Buscar por paymentIntentId
         if (!payment) {
             return res.status(404).json({ error: "Pago no encontrado" });
         }
 
-        payment.status = "completed"; // O el estado que desees
+        payment.status = "completed"; // O el estado correcto
         await payment.save();
 
         res.json({ message: "Estado de pago actualizado correctamente" });
@@ -167,8 +167,7 @@ const changePaymentStatus = async (req, res) => {
         console.error("❌ Error al actualizar el estado del pago:", error.message);
         res.status(500).json({ error: error.message });
     }
-
-}
+};
 
 module.exports = {
     createPayment,

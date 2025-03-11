@@ -25,8 +25,8 @@ const stripeWebhook = async (req, res) => {
             const paymentIntent = event.data.object;
 
             console.log("✅ Pago confirmado en Stripe:", paymentIntent.id);
+            console.log("🔍 Metadata recibida en el webhook:", paymentIntent.metadata);  // 👈 Verifica que contiene userId y plan
 
-            // ✅ Extraer `userId` y `plan` de `metadata`
             const userId = paymentIntent.metadata.userId || null;
             const plan = Number(paymentIntent.metadata.plan) || null;
 
@@ -35,22 +35,20 @@ const stripeWebhook = async (req, res) => {
                 return res.status(400).json({ error: "Faltan datos en metadata." });
             }
 
-            // ✅ Guardar el pago en MongoDB solo si tiene los datos completos
             const payment = new Payment({
-                _id: paymentIntent.id, // Usamos el ID de Stripe como _id
-                userId, // Ahora es un ObjectId válido
+                _id: paymentIntent.id,
+                userId,
                 paymentIntentId: paymentIntent.id,
                 amount: paymentIntent.amount,
                 currency: paymentIntent.currency,
                 status: "succeeded",
                 plan,
-                paymentUrl: "" // No se necesita, ya que el pago está completo
+                paymentUrl: ""
             });
 
             await payment.save();
             console.log("✅ Pago guardado en MongoDB con ID:", payment._id);
         }
-
     } catch (dbError) {
         console.error("❌ Error al procesar el webhook:", dbError.message);
         return res.status(500).json({ error: "Error interno al procesar el evento." });

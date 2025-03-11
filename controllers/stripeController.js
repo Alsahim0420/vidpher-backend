@@ -17,80 +17,52 @@ const stripeWebhook = async (req, res) => {
     console.log(`🔔 Evento recibido: ${event.type}`);
 
     try {
+        let paymentIntentId, userId, plan;
+
         if (event.type === "payment_intent.succeeded") {
-            let paymentIntent = event.data.object;
-            let metadata = paymentIntent.metadata || {};
-
-            console.log("🔄 Verificando PaymentIntent en Stripe...");
-
-            // 🚨 **Intentar recuperar la metadata si está ausente**
-            if (!metadata.userId || !metadata.plan) {
-                console.warn("⚠ Metadata ausente, intentando recuperar desde Stripe...");
-
-                try {
-                    paymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id);
-                    metadata = paymentIntent.metadata || {};
-                    console.log("✅ Metadata recuperada:", metadata);
-                } catch (error) {
-                    console.error(`❌ No se pudo recuperar la metadata: ${error.message}`);
-                    return res.status(400).json({ error: "Metadata no encontrada." });
-                }
-            }
-
-            let ghostUsed = false;
-
-            // 🔹 **Si la metadata sigue ausente, agregar una metadata ghost**
-            if (!metadata.userId || !metadata.plan) {
-                console.warn("⚠ Metadata sigue vacía, creando metadata ghost...");
-
-                const ghostMetadata = {
-                    userId: "ghost_user",
-                    plan: "ghost_plan"
-                };
-
-                await stripe.paymentIntents.update(paymentIntent.id, { metadata: ghostMetadata });
-                console.log("👻 Metadata ghost agregada:", ghostMetadata);
-
-                // **Recuperar nuevamente el PaymentIntent con la metadata ghost**
-                paymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id);
-                metadata = paymentIntent.metadata || {};
-                ghostUsed = true;
-            }
-
-            console.log("✅ Metadata final:", metadata);
-
-            // 🔹 Buscar el pago en MongoDB
-            let payment = await Payment.findOneAndUpdate(
-                { paymentIntentId: paymentIntent.id },
-                { status: "succeeded", userId: metadata.userId, plan: metadata.plan },
-                { new: true }
-            );
-
-            if (payment) {
-                console.log("✅ Pago actualizado en MongoDB:", paymentIntent.id);
-            } else {
-                console.warn("⚠ No se encontró el pago en la base de datos. Creando nuevo registro...");
-
-                payment = new Payment({
-                    paymentIntentId: paymentIntent.id,
-                    userId: metadata.userId,
-                    plan: metadata.plan,
-                    amount: paymentIntent.amount,
-                    currency: paymentIntent.currency,
-                    status: "succeeded"
-                });
-
-                await payment.save();
-                console.log("✅ Nuevo pago creado en MongoDB.");
-            }
-
-            // 🚀 **Eliminar metadata ghost solo si fue utilizada**
-            if (ghostUsed) {
-                console.log("👻 Eliminando metadata ghost...");
-                await stripe.paymentIntents.update(paymentIntent.id, { metadata: {} });
-                console.log("✅ Metadata ghost eliminada.");
-            }
+            const paymentIntent = event.data.object;
+            paymentIntentId = paymentIntent.id;
+            userId = paymentIntent.metadata.userId;
+            plan = paymentIntent.metadata.plan;
         }
+
+        if (event.type === "invoice.payment_succeeded") {
+            const invoice = event.data.object;
+            paymentIntentId = invoice.payment_intent;
+            userId = invoice.customer;
+            plan = invoice.lines.data[0]?.plan?.id; // Si es una suscripción, extraemos el plan
+        }
+
+        if (!paymentIntentId) {
+            console.warn("⚠ No se pudo extraer el PaymentIntent del evento.");
+            return res.status(400).json({ error: "No se encontró PaymentIntent en el evento." });
+        }
+
+        console.log("🔍 PaymentIntent encontrado:", paymentIntentId);
+
+        // ✅ Actualizar el pago en la base de datos sin depender de metadata
+        const payment = await Payment.findOneAndUpdate(
+            { paymentIntentId },
+            { status: "succeeded", userId, plan },
+            { new: true }
+        );
+
+        if (payment) {
+            console.log("✅ Pago actualizado en MongoDB:", paymentIntentId);
+        } else {
+            console.warn("⚠ No se encontró el pago en la base de datos. Creando nuevo registro...");
+
+            const newPayment = new Payment({
+                paymentIntentId,
+                userId,
+                plan,
+                status: "succeeded"
+            });
+
+            await newPayment.save();
+            console.log("✅ Nuevo pago creado en MongoDB.");
+        }
+
     } catch (error) {
         console.error("❌ Error al procesar el webhook:", error.message);
         return res.status(500).json({ error: "Error interno al procesar el evento." });

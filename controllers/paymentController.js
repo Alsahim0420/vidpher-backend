@@ -32,8 +32,10 @@ const createPayment = async (req, res) => {
             amount,
             currency,
             automatic_payment_methods: { enabled: true },
-            metadata: { userId, plan: planNumber }
+            metadata: { userId, plan: planNumber },
+            setup_future_usage: "off_session" // Mantiene la metadata si se requiere autenticación extra
         });
+        
 
         console.log("🔹 Nuevo PaymentIntent creado en Stripe:", paymentIntent.id);
         console.log("🔍 Metadata enviada en el PaymentIntent:", paymentIntent.metadata);

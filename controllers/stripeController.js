@@ -19,45 +19,48 @@ const stripeWebhook = async (req, res) => {
     try {
         if (event.type === "payment_intent.succeeded") {
             let paymentIntent = event.data.object;
-            let metadata = paymentIntent.metadata;
+            let metadata = paymentIntent.metadata || {};
 
             console.log("🔄 Verificando PaymentIntent en Stripe...");
 
-            // 🚨 **Si la metadata está vacía, intentamos recuperarla manualmente**
+            // 🚨 **Intentar recuperar la metadata si está ausente**
             if (!metadata.userId || !metadata.plan) {
-                console.warn("⚠ Metadata ausente, intentando recuperar...");
+                console.warn("⚠ Metadata ausente, intentando recuperar desde Stripe...");
 
                 try {
                     paymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id);
-                    metadata = paymentIntent.metadata;
+                    metadata = paymentIntent.metadata || {};
                     console.log("✅ Metadata recuperada:", metadata);
                 } catch (error) {
                     console.error(`❌ No se pudo recuperar la metadata: ${error.message}`);
                     return res.status(400).json({ error: "Metadata no encontrada." });
                 }
+            }
 
-                // 🔹 **Si sigue sin metadata, agregamos una temporalmente (Ghost)**
-                if (!metadata.userId || !metadata.plan) {
-                    console.warn("⚠ Metadata sigue vacía, creando metadata ghost...");
+            let ghostUsed = false;
 
-                    const ghostMetadata = {
-                        userId: "ghost_user",
-                        plan: "ghost_plan"
-                    };
+            // 🔹 **Si la metadata sigue ausente, agregar una metadata ghost**
+            if (!metadata.userId || !metadata.plan) {
+                console.warn("⚠ Metadata sigue vacía, creando metadata ghost...");
 
-                    await stripe.paymentIntents.update(paymentIntent.id, { metadata: ghostMetadata });
-                    console.log("👻 Metadata ghost agregada:", ghostMetadata);
+                const ghostMetadata = {
+                    userId: "ghost_user",
+                    plan: "ghost_plan"
+                };
 
-                    // **Recuperar nuevamente el PaymentIntent con la metadata ghost**
-                    paymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id);
-                    metadata = paymentIntent.metadata;
-                }
+                await stripe.paymentIntents.update(paymentIntent.id, { metadata: ghostMetadata });
+                console.log("👻 Metadata ghost agregada:", ghostMetadata);
+
+                // **Recuperar nuevamente el PaymentIntent con la metadata ghost**
+                paymentIntent = await stripe.paymentIntents.retrieve(paymentIntent.id);
+                metadata = paymentIntent.metadata || {};
+                ghostUsed = true;
             }
 
             console.log("✅ Metadata final:", metadata);
 
             // 🔹 Buscar el pago en MongoDB
-            const payment = await Payment.findOneAndUpdate(
+            let payment = await Payment.findOneAndUpdate(
                 { paymentIntentId: paymentIntent.id },
                 { status: "succeeded", userId: metadata.userId, plan: metadata.plan },
                 { new: true }
@@ -68,7 +71,7 @@ const stripeWebhook = async (req, res) => {
             } else {
                 console.warn("⚠ No se encontró el pago en la base de datos. Creando nuevo registro...");
 
-                const newPayment = new Payment({
+                payment = new Payment({
                     paymentIntentId: paymentIntent.id,
                     userId: metadata.userId,
                     plan: metadata.plan,
@@ -77,12 +80,12 @@ const stripeWebhook = async (req, res) => {
                     status: "succeeded"
                 });
 
-                await newPayment.save();
+                await payment.save();
                 console.log("✅ Nuevo pago creado en MongoDB.");
             }
 
-            // 🚀 **Eliminar metadata ghost después de procesarlo**
-            if (metadata.userId === "ghost_user" || metadata.plan === "ghost_plan") {
+            // 🚀 **Eliminar metadata ghost solo si fue utilizada**
+            if (ghostUsed) {
                 console.log("👻 Eliminando metadata ghost...");
                 await stripe.paymentIntents.update(paymentIntent.id, { metadata: {} });
                 console.log("✅ Metadata ghost eliminada.");

@@ -8,13 +8,11 @@ const stripeWebhook = async (req, res) => {
     let event;
 
     try {
-        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
         console.error("❌ Webhook signature verification failed:", err.message);
-        return res.status(400).json({ error: "Webhook Error: " + err.message });
+        return res.status(400).json({ error: "Webhook Error" });
     }
-
-    console.log(`🔔 Evento recibido: ${event.type}`);
 
     try {
         let paymentIntentId, userId, plan;
@@ -26,49 +24,33 @@ const stripeWebhook = async (req, res) => {
             plan = paymentIntent.metadata.plan;
         }
 
-        if (event.type === "invoice.payment_succeeded") {
-            const invoice = event.data.object;
-            paymentIntentId = invoice.payment_intent;
-            userId = invoice.customer;
-            plan = invoice.lines.data[0]?.plan?.id; // Si es una suscripción, extraemos el plan
+        if (!paymentIntentId || !userId || !plan) {
+            return res.status(400).json({ error: "Faltan datos en el evento recibido" });
         }
 
-        if (!paymentIntentId) {
-            console.warn("⚠ No se pudo extraer el PaymentIntent del evento.");
-            return res.status(400).json({ error: "No se encontró PaymentIntent en el evento." });
-        }
-
-        console.log("🔍 PaymentIntent encontrado:", paymentIntentId);
-
-        // ✅ Actualizar el pago en la base de datos sin depender de metadata
         const payment = await Payment.findOneAndUpdate(
             { paymentIntentId },
             { status: "succeeded", userId, plan },
             { new: true }
         );
 
-        if (payment) {
-            console.log("✅ Pago actualizado en MongoDB:", paymentIntentId);
-        } else {
-            console.warn("⚠ No se encontró el pago en la base de datos. Creando nuevo registro...");
-
-            const newPayment = new Payment({
+        if (!payment) {
+            await Payment.create({
                 paymentIntentId,
                 userId,
                 plan,
-                status: "succeeded"
+                amount: event.data.object.amount,
+                currency: event.data.object.currency,
+                status: "succeeded",
+                paymentUrl: "N/A"
             });
-
-            await newPayment.save();
-            console.log("✅ Nuevo pago creado en MongoDB.");
         }
 
+        res.json({ received: true });
     } catch (error) {
         console.error("❌ Error al procesar el webhook:", error.message);
-        return res.status(500).json({ error: "Error interno al procesar el evento." });
+        res.status(500).json({ error: "Error interno al procesar el evento" });
     }
-
-    res.json({ received: true });
 };
 
 module.exports = { stripeWebhook };

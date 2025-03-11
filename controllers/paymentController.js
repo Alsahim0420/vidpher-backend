@@ -7,27 +7,23 @@ const createPayment = async (req, res) => {
         const { amount, currency, plan } = req.body;
         const userId = req.user.id;
 
-        if (!plan || isNaN(Number(plan))) {
-            return res.status(400).json({ error: "El plan debe ser un número válido" });
+        if (!amount || !currency || !plan || isNaN(Number(plan))) {
+            return res.status(400).json({ error: "Datos inválidos para el pago" });
         }
 
         const planNumber = Number(plan);
+        const paymentUrls = {
+            1: "https://buy.stripe.com/test_9AQ6oY9Ao3xDcyA6oo",
+            2: "https://buy.stripe.com/test_dR6aFe13S6JP8ik8wx",
+            3: "https://buy.stripe.com/test_eVa14EbIwd8d424aEG"
+        };
 
-        // URLs de pago según el plan
-        let paymentUrl;
-        if (planNumber === 1) {
-            paymentUrl = "https://buy.stripe.com/test_9AQ6oY9Ao3xDcyA6oo";
-        } else if (planNumber === 2) {
-            paymentUrl = "https://buy.stripe.com/test_dR6aFe13S6JP8ik8wx";
-        } else if (planNumber === 3) {
-            paymentUrl = "https://buy.stripe.com/test_eVa14EbIwd8d424aEG";
-        } else {
+        if (!paymentUrls[planNumber]) {
             return res.status(400).json({ error: "Plan no válido" });
         }
 
-        console.log("📌 Datos antes de crear PaymentIntent:", { userId, plan: planNumber });
+        const paymentUrl = paymentUrls[planNumber];
 
-        // ✅ Crear PaymentIntent con metadata
         const paymentIntent = await stripe.paymentIntents.create({
             amount,
             currency,
@@ -35,30 +31,26 @@ const createPayment = async (req, res) => {
             metadata: { userId, plan: planNumber }
         });
 
-        console.log("🔹 Nuevo PaymentIntent creado en Stripe:", paymentIntent.id);
-        console.log("🔍 Metadata enviada en el PaymentIntent:", paymentIntent.metadata);
-
-        // 🔄 **Actualizar el PaymentIntent** para asegurarse de que la metadata se mantenga
-        console.log("🔄 Actualizando PaymentIntent con metadata...");
-        await stripe.paymentIntents.update(paymentIntent.id, {
-            metadata: { userId, plan: planNumber }
+        await Payment.create({
+            paymentIntentId: paymentIntent.id,
+            userId,
+            amount,
+            currency,
+            plan: planNumber,
+            paymentUrl,
+            status: "pending"
         });
-        console.log("✅ PaymentIntent actualizado correctamente.");
 
         res.status(201).json({
             message: "Pago iniciado",
             paymentIntentId: paymentIntent.id,
             paymentUrl
         });
-
     } catch (error) {
         console.error("❌ Error al crear el pago:", error.message);
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ error: "Error interno del servidor" });
     }
 };
-
-
-
 
 
 
@@ -106,25 +98,16 @@ const allPayments = async (req, res) => {
 const getPaymentStatus = async (req, res) => {
     try {
         const { paymentIntentId } = req.query;
-
-        // 🔹 Validar que el paymentIntentId está presente
         if (!paymentIntentId) {
             return res.status(400).json({ error: "Se requiere el paymentIntentId" });
         }
 
-        // 🔹 Buscar el pago en la base de datos
         const payment = await Payment.findOne({ paymentIntentId });
-
         if (!payment) {
-            console.warn("⚠ Pago no encontrado en la base de datos:", paymentIntentId);
             return res.status(404).json({ error: "Pago no encontrado" });
         }
 
-        console.log("✅ Estado del pago en la base de datos:", payment.status);
-
-        // 🔹 Responder con el estado del pago
         res.json({ status: payment.status });
-
     } catch (error) {
         console.error("❌ Error al obtener el estado del pago:", error.message);
         res.status(500).json({ error: "Error interno del servidor" });

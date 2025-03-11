@@ -13,6 +13,18 @@ const createPayment = async (req, res) => {
 
         const planNumber = Number(plan);
 
+        // URLs de pago según el plan
+        let paymentUrl;
+        if (planNumber === 1) {
+            paymentUrl = "https://buy.stripe.com/test_9AQ6oY9Ao3xDcyA6oo";
+        } else if (planNumber === 2) {
+            paymentUrl = "https://buy.stripe.com/test_dR6aFe13S6JP8ik8wx";
+        } else if (planNumber === 3) {
+            paymentUrl = "https://buy.stripe.com/test_eVa14EbIwd8d424aEG";
+        } else {
+            return res.status(400).json({ error: "Plan no válido" });
+        }
+
         console.log("📌 Datos antes de crear PaymentIntent:", { userId, plan: planNumber });
 
         // ✅ Crear `PaymentIntent`
@@ -33,7 +45,8 @@ const createPayment = async (req, res) => {
             plan: planNumber,
             amount: amount,
             currency: currency,
-            status: "pending"
+            status: "pending",
+            paymentUrl // 🔹 Guardamos la URL en la base de datos
         });
 
         await payment.save();
@@ -41,7 +54,8 @@ const createPayment = async (req, res) => {
 
         res.status(201).json({
             message: "Pago iniciado",
-            paymentIntentId: paymentIntent.id
+            paymentIntentId: paymentIntent.id,
+            paymentUrl // 🔹 Enviamos la URL al cliente para redirigirlo al pago
         });
 
     } catch (error) {

@@ -47,7 +47,7 @@ const createPayment = async (req, res) => {
             }
         });
 
-        console.log("✅ PaymentIntent creado en Stripe:", paymentIntent.id);
+        console.log("🔹 Nuevo PaymentIntent creado en Stripe:", paymentIntent.id);
 
         // ✅ Guardar el nuevo pago en MongoDB
         const payment = new Payment({

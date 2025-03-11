@@ -12,6 +12,8 @@ const createPayment = async (req, res) => {
         }
 
         const planNumber = Number(plan);
+
+        // URLs de pago según el plan
         let paymentUrl;
         if (planNumber === 1) {
             paymentUrl = "https://buy.stripe.com/test_9AQ6oY9Ao3xDcyA6oo";
@@ -23,18 +25,25 @@ const createPayment = async (req, res) => {
             return res.status(400).json({ error: "Plan no válido" });
         }
 
-        // ✅ Verifica si `userId` y `plan` existen antes de enviar a Stripe
         console.log("📌 Datos antes de crear PaymentIntent:", { userId, plan: planNumber });
 
+        // ✅ Crear `PaymentIntent` con metadata
         const paymentIntent = await stripe.paymentIntents.create({
             amount,
             currency,
             automatic_payment_methods: { enabled: true },
-            metadata: { userId: String(userId), plan: String(planNumber) } // 👈 Convertimos a string por seguridad
+            metadata: { userId, plan: planNumber }
         });
 
         console.log("🔹 Nuevo PaymentIntent creado en Stripe:", paymentIntent.id);
         console.log("🔍 Metadata enviada en el PaymentIntent:", paymentIntent.metadata);
+
+        // 🔄 **Actualizar el PaymentIntent** para asegurarse de que la metadata se mantenga
+        console.log("🔄 Actualizando PaymentIntent con metadata...");
+        await stripe.paymentIntents.update(paymentIntent.id, {
+            metadata: { userId, plan: planNumber }
+        });
+        console.log("✅ PaymentIntent actualizado correctamente.");
 
         res.status(201).json({
             message: "Pago iniciado",
@@ -47,6 +56,9 @@ const createPayment = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
+module.exports = { createPayment };
+
 
 
 

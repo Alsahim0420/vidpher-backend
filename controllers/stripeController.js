@@ -8,7 +8,7 @@ const stripeWebhook = async (req, res) => {
     let event;
 
     try {
-        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
     } catch (err) {
         console.error("❌ Webhook signature verification failed:", err.message);
         return res.status(400).json({ error: "Webhook Error" });
@@ -22,6 +22,9 @@ const stripeWebhook = async (req, res) => {
             paymentIntentId = paymentIntent.id;
             userId = paymentIntent.metadata.userId;
             plan = paymentIntent.metadata.plan;
+        } else {
+            console.log("⚠ Evento no manejado:", event.type);
+            return res.status(400).json({ error: "Evento no manejado" });
         }
 
         if (!paymentIntentId || !userId || !plan) {

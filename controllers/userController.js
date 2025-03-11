@@ -231,8 +231,8 @@ const profile = async (req, res) => {
             });
         }
 
-        // ✅ Buscar en Payment por userId en lugar de solo user
-        const payment = await Payment.findOne({ userId: id }) // Aquí cambiamos `user` por `userId`
+        // Buscar el último pago exitoso del usuario
+        const payment = await Payment.findOne({ userId: id })
             .sort({ createdAt: -1 });
 
         if (payment && 
@@ -244,11 +244,17 @@ const profile = async (req, res) => {
             await userFound.save();
         }
 
+        // Si el usuario tiene pago confirmado, asignar el plan_type
+        if (userFound.payment_status && payment) {
+            userFound.plan_type = payment.plan;
+            await userFound.save();
+        }
+
         const followInfo = await followServices.followThisUser(req.user.id, id);
         const following = await Follow.countDocuments({ user: id });
         const followed = await Follow.countDocuments({ followed: id });
 
-        // ✅ Verificar si el usuario logueado sigue al usuario del perfil
+        // Verificar si el usuario logueado sigue al usuario del perfil
         const isFollowing = await Follow.exists({ user: req.user.id, followed: id });
 
         let publicationsCount = 0;
@@ -308,6 +314,7 @@ const profile = async (req, res) => {
         });
     }
 };
+
 
 
 
@@ -686,59 +693,66 @@ const searchAll = async (req, res) => {
         let publications = [];
 
         if (!filter || filter === "cuentas") {
-            // Buscar usuarios por username o email
             users = await user.find({
                 $or: [
                     { username: new RegExp(query, "i") },
                     { email: new RegExp(query, "i") }
                 ]
-            }).select("-password");
+            }).select("-password -__v").lean();
 
-            // Buscar usuarios por categoría en sus preferencias
             const usersByPreferences = await Preferences.find({
                 preferences: new RegExp(query, "i")
-            }).populate({
-                path: "user",
-                select: "-password"
-            });
+            }).populate({ path: "user", select: "-password -__v" }).lean();
 
-            // Agregar estos usuarios al array de users
             usersByPreferences.forEach(pref => {
-                if (pref.user) {
-                    users.push(pref.user);
-                }
+                if (pref.user) users.push(pref.user);
             });
         }
 
         if (!filter || filter === "categoria") {
             preferences = await Preferences.find({
                 preferences: new RegExp(query, "i")
-            }).populate({
-                path: "user",
-                select: "-password"
-            });
+            }).populate({ path: "user", select: "-password -__v" }).lean();
         }
 
         if (!filter || filter === "ubicacion") {
             publications = await Publication.find({
                 location: new RegExp(query, "i")
-            }).populate("user", "-password");
+            }).populate({ path: "user", select: "-password -__v" }).lean();
+
+            const usersByLocation = await user.find({
+                $or: [
+                    { city: new RegExp(query, "i") },
+                    { country: new RegExp(query, "i") }
+                ]
+            }).select("-password -__v").lean();
+
+            users.push(...usersByLocation);
         }
 
-        // Eliminar duplicados de usuarios
         const uniqueUsers = new Map();
         users.forEach(user => uniqueUsers.set(user._id.toString(), user));
-
-        // Eliminar duplicados en preferencias
         preferences.forEach(pref => {
-            if (pref.user) {
-                uniqueUsers.set(pref.user._id.toString(), pref.user);
-            }
+            if (pref.user) uniqueUsers.set(pref.user._id.toString(), pref.user);
         });
 
-        const uniqueUsersArray = Array.from(uniqueUsers.values());
+        let uniqueUsersArray = Array.from(uniqueUsers.values());
 
-        // Si no hay resultados
+        // Ordenar usuarios y publicaciones por type_plan (si payment_status es true)
+        const sortByPlanType = (a, b) => (b.type_plan || 0) - (a.type_plan || 0);
+
+        const premiumUsers = uniqueUsersArray.filter(user => user.payment_status).sort(sortByPlanType);
+        const regularUsers = uniqueUsersArray.filter(user => !user.payment_status);
+        uniqueUsersArray = [...premiumUsers, ...regularUsers];
+
+        const premiumPublications = publications.filter(pub => pub.user.payment_status).sort(sortByPlanType);
+        const regularPublications = publications.filter(pub => !pub.user.payment_status);
+        publications = [...premiumPublications, ...regularPublications];
+
+        if (!filter || filter === "categoria") {
+            preferences.sort((a, b) => sortByPlanType(a.user, b.user));
+        }
+
         if (uniqueUsersArray.length === 0 && preferences.length === 0 && publications.length === 0) {
             return res.status(200).json({
                 status: "success",
@@ -760,6 +774,7 @@ const searchAll = async (req, res) => {
         res.status(500).json({ message: "Error en la búsqueda", error: error.message });
     }
 };
+
 
 
 //Expoortar las acciones

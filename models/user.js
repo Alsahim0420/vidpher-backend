@@ -54,6 +54,10 @@ const UserSchema = new Schema({
     payment_status: { 
         type: Boolean, 
         default: false 
+    },
+    plan_type: { 
+        type: Number, 
+        default: 0 
     }
 });
 

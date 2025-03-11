@@ -262,7 +262,8 @@ const media = (req, res) => {
 const feed = async (req, res) => {
     try {
         const userId = req.user.id.toString(); // Asegurar que userId sea string
-        
+
+        // Buscar usuario logueado
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({
@@ -271,20 +272,20 @@ const feed = async (req, res) => {
             });
         }
 
-        // Obtener los usuarios con payment_status en true
-        const validUsers = await User.find({ payment_status: true }).select('_id');
-        const validUserIds = validUsers.map(user => user._id);
+        // Obtener los usuarios seguidos por el usuario logueado usando followService
+        const followService = require("../services/followService");
+        const { following } = await followService.followUserIds(userId);
 
-        // Obtener publicaciones solo de esos usuarios
-        const publications = await Publication.find({ user: { $in: validUserIds } })
+        // Obtener publicaciones solo de los usuarios seguidos
+        const publications = await Publication.find({ user: { $in: following } })
             .sort({ createdAt: -1 })
             .populate({
                 path: "user",
-                select: "-password -__v -createdAt -token",
+                select: "-password -__v -createdAt",
             })
             .populate({
                 path: "comments.user",
-                select: "-password -__v -createdAt -token",
+                select: "-password -__v -createdAt",
             });
 
         // Obtener publicaciones guardadas del usuario logueado
@@ -296,19 +297,34 @@ const feed = async (req, res) => {
         const publicationsWithMeta = publications.map(publication => {
             const publicationObj = publication.toObject({ virtuals: true });
 
-            // 🔥 **Corrección aquí:** Usamos `.some()` y `.toString()` para comparar correctamente
+            // Verificar si la publicación está en likedBy
             publicationObj.isLiked = publication.likedBy.some(likedUser => likedUser.toString() === userId);
 
+            // Verificar si la publicación está guardada
             publicationObj.isSaved = savedPublicationIds.has(publication._id.toString());
+
+            // Ordenar comentarios por fecha descendente
             publicationObj.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
             return publicationObj;
         });
 
+        // Separar publicaciones de usuarios con payment_status: true
+        const premiumPublications = publicationsWithMeta.filter(pub => pub.user.payment_status);
+        const regularPublications = publicationsWithMeta.filter(pub => !pub.user.payment_status);
+
+        // Combinar publicaciones priorizando las de usuarios con payment_status: true
+        const allPublications = [...premiumPublications, ...regularPublications];
+
+        // Eliminar duplicados y ordenar por type_plan de mayor a menor
+        const uniquePublications = Array.from(
+            new Map(allPublications.map(pub => [pub._id.toString(), pub])).values()
+        ).sort((a, b) => (b.user.type_plan || 0) - (a.user.type_plan || 0));
+
         return res.status(200).json({
             status: "success",
             message: "List of posts in the feed",
-            publications: publicationsWithMeta,
+            publications: uniquePublications,
         });
     } catch (error) {
         return res.status(500).json({
@@ -318,6 +334,7 @@ const feed = async (req, res) => {
         });
     }
 };
+
 
 
 

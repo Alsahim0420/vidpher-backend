@@ -44,7 +44,7 @@ const stripeWebhook = async (req, res) => {
         if (event.type === "payment_intent.succeeded") {
             const paymentIntent = event.data.object;
 
-            console.log("🔍 Buscando en la base de datos el pago con paymentIntentId:", paymentIntent.id);
+            console.log("🔔 Webhook recibió PaymentIntent ID:", paymentIntent.id);
 
             // ✅ Función para reintentar la búsqueda del pago en la base de datos
             const retryFindPayment = async (paymentIntentId, retries = 5) => {

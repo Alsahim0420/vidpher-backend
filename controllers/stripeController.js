@@ -5,57 +5,52 @@ const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
 const stripeWebhook = async (req, res) => {
     const sig = req.headers["stripe-signature"];
-    if (!sig) {
-        console.error("❌ No se encontró el encabezado stripe-signature.");
-        return res.status(400).json({ error: "Webhook Error: No stripe-signature header found." });
-    }
-
     let event;
+
     try {
-        event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
     } catch (err) {
         console.error("❌ Webhook signature verification failed:", err.message);
         return res.status(400).json({ error: "Webhook Error: " + err.message });
     }
 
     console.log(`🔔 Evento recibido: ${event.type}`);
+    
+    // 📌 Log para ver si la metadata está llegando correctamente
+    console.log("🔍 Metadata recibida en el webhook:", event.data.object.metadata);
 
     try {
         if (event.type === "payment_intent.succeeded") {
             const paymentIntent = event.data.object;
+            const metadata = paymentIntent.metadata;
 
-            console.log("✅ Pago confirmado en Stripe:", paymentIntent.id);
-            console.log("🔍 Metadata recibida en el webhook:", paymentIntent.metadata);  // 👈 Verifica que contiene userId y plan
-
-            const userId = paymentIntent.metadata.userId || null;
-            const plan = Number(paymentIntent.metadata.plan) || null;
-
-            if (!userId || !plan) {
+            if (!metadata.userId || !metadata.plan) {
                 console.error("❌ Faltan `userId` o `plan` en metadata del PaymentIntent.");
-                return res.status(400).json({ error: "Faltan datos en metadata." });
+                return res.status(400).json({ error: "Faltan `userId` o `plan` en metadata." });
             }
 
-            const payment = new Payment({
-                _id: paymentIntent.id,
-                userId,
-                paymentIntentId: paymentIntent.id,
-                amount: paymentIntent.amount,
-                currency: paymentIntent.currency,
-                status: "succeeded",
-                plan,
-                paymentUrl: ""
-            });
+            console.log("✅ Metadata correcta:", metadata);
 
-            await payment.save();
-            console.log("✅ Pago guardado en MongoDB con ID:", payment._id);
+            const payment = await Payment.findOneAndUpdate(
+                { paymentIntentId: paymentIntent.id },
+                { status: "succeeded" },
+                { new: true }
+            );
+
+            if (payment) {
+                console.log("✅ Pago actualizado en MongoDB:", paymentIntent.id);
+            } else {
+                console.warn("⚠ No se encontró el pago en la base de datos.");
+            }
         }
-    } catch (dbError) {
-        console.error("❌ Error al procesar el webhook:", dbError.message);
+    } catch (error) {
+        console.error("❌ Error al procesar el webhook:", error.message);
         return res.status(500).json({ error: "Error interno al procesar el evento." });
     }
 
     res.json({ received: true });
 };
+
 
 
 

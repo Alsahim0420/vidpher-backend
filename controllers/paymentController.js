@@ -13,44 +13,35 @@ const createPayment = async (req, res) => {
 
         const planNumber = Number(plan);
 
-        // URLs de pago según el plan
-        let paymentUrl;
-        if (planNumber === 1) {
-            paymentUrl = "https://buy.stripe.com/test_9AQ6oY9Ao3xDcyA6oo";
-        } else if (planNumber === 2) {
-            paymentUrl = "https://buy.stripe.com/test_dR6aFe13S6JP8ik8wx";
-        } else if (planNumber === 3) {
-            paymentUrl = "https://buy.stripe.com/test_eVa14EbIwd8d424aEG";
-        } else {
-            return res.status(400).json({ error: "Plan no válido" });
-        }
-
         console.log("📌 Datos antes de crear PaymentIntent:", { userId, plan: planNumber });
 
-        // ✅ Crear `PaymentIntent` con metadata
+        // ✅ Crear `PaymentIntent`
         const paymentIntent = await stripe.paymentIntents.create({
             amount,
             currency,
             automatic_payment_methods: { enabled: true },
-            metadata: { userId, plan: planNumber },
-            setup_future_usage: "off_session" // Mantiene la metadata si se requiere autenticación extra
+            metadata: { userId, plan: planNumber }
         });
-        
 
         console.log("🔹 Nuevo PaymentIntent creado en Stripe:", paymentIntent.id);
         console.log("🔍 Metadata enviada en el PaymentIntent:", paymentIntent.metadata);
 
-        // 🔄 **Actualizar el PaymentIntent** para asegurarse de que la metadata se mantenga
-        console.log("🔄 Actualizando PaymentIntent con metadata...");
-        await stripe.paymentIntents.update(paymentIntent.id, {
-            metadata: { userId, plan: planNumber }
+        // ✅ Guardar el pago en MongoDB en estado "pending"
+        const payment = new Payment({
+            paymentIntentId: paymentIntent.id,
+            userId,
+            plan: planNumber,
+            amount: amount,
+            currency: currency,
+            status: "pending"
         });
-        console.log("✅ PaymentIntent actualizado correctamente.");
+
+        await payment.save();
+        console.log("✅ Pago almacenado en MongoDB con estado 'pending'.");
 
         res.status(201).json({
             message: "Pago iniciado",
-            paymentIntentId: paymentIntent.id,
-            paymentUrl
+            paymentIntentId: paymentIntent.id
         });
 
     } catch (error) {
@@ -59,7 +50,6 @@ const createPayment = async (req, res) => {
     }
 };
 
-module.exports = { createPayment };
 
 
 

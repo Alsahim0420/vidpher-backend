@@ -24,12 +24,16 @@ const createPayment = async (req, res) => {
 
         const paymentUrl = paymentUrls[planNumber];
 
+        console.log("📌 Datos antes de crear PaymentIntent:", { userId, plan: planNumber });
+
         const paymentIntent = await stripe.paymentIntents.create({
             amount,
             currency,
             automatic_payment_methods: { enabled: true },
-            metadata: { userId, plan: planNumber }
+            metadata: { userId: String(userId), plan: String(planNumber) } // Asegurar que se envían como string
         });
+
+        console.log("🔍 PaymentIntent metadata enviado:", paymentIntent.metadata);
 
         await Payment.create({
             paymentIntentId: paymentIntent.id,

@@ -4,7 +4,7 @@ const Payment = require("../models/payment");
 
 const createPayment = async (req, res) => {
     try {
-        const { amount, currency, paymentMethodId, plan } = req.body;
+        const { amount, currency, plan } = req.body;
         const userId = req.user.id;
 
         if (!plan || isNaN(Number(plan))) {
@@ -19,50 +19,20 @@ const createPayment = async (req, res) => {
             paymentUrl = "https://buy.stripe.com/test_9AQ6oY9Ao3xDcyA6oo";
         } else if (planNumber === 2) {
             paymentUrl = "https://buy.stripe.com/test_dR6aFe13S6JP8ik8wx";
-        } else if (planNumber== 3) {
+        } else if (planNumber === 3) {
             paymentUrl = "https://buy.stripe.com/test_eVa14EbIwd8d424aEG";
-        }else {
+        } else {
             return res.status(400).json({ error: "Plan no válido" });
         }
 
-        // ✅ Verificar si ya existe un PaymentIntent para este usuario y plan
-        let existingPayment = await Payment.findOne({ userId, plan: planNumber, status: "pending" });
-
-        if (existingPayment) {
-            console.log("📌 Se encontró un PaymentIntent existente:", existingPayment.paymentIntentId);
-            return res.status(200).json({
-                message: "Ya tienes un pago pendiente",
-                paymentIntentId: existingPayment.paymentIntentId,
-                paymentUrl: existingPayment.paymentUrl
-            });
-        }
-
-        // ✅ Crear un nuevo PaymentIntent en Stripe
+        // ✅ Crear el `PaymentIntent` pero NO guardarlo en MongoDB aún
         const paymentIntent = await stripe.paymentIntents.create({
             amount,
             currency,
-            automatic_payment_methods: {
-                enabled: true,
-                allow_redirects: "never"
-            }
+            automatic_payment_methods: { enabled: true }
         });
 
         console.log("🔹 Nuevo PaymentIntent creado en Stripe:", paymentIntent.id);
-
-        // ✅ Guardar el nuevo pago en MongoDB
-        const payment = new Payment({
-            _id: paymentIntent.id, // Usamos el ID de Stripe como _id en MongoDB
-            userId,
-            paymentIntentId: paymentIntent.id,
-            amount: paymentIntent.amount,
-            currency: paymentIntent.currency,
-            status: paymentIntent.status, // Guardamos el estado real de Stripe
-            plan: planNumber,
-            paymentUrl: paymentUrl
-        });
-
-        await payment.save();
-        console.log("✅ Pago almacenado en MongoDB con el mismo ID:", payment._id);
 
         res.status(201).json({
             message: "Pago iniciado",
@@ -75,6 +45,7 @@ const createPayment = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 
 

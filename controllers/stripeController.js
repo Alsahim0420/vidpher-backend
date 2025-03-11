@@ -12,7 +12,6 @@ const stripeWebhook = async (req, res) => {
 
     let event;
     try {
-        // ✅ Verificar la firma del webhook
         event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
     } catch (err) {
         console.error("❌ Webhook signature verification failed:", err.message);
@@ -22,72 +21,25 @@ const stripeWebhook = async (req, res) => {
     console.log(`🔔 Evento recibido: ${event.type}`);
 
     try {
-        if (event.type === "checkout.session.completed") {
-            const session = event.data.object;
-
-            console.log("🔍 PaymentIntent recibido:", session.payment_intent);
-            console.log("🔍 Session ID recibido:", session.id);
-
-            const payment = await Payment.findOneAndUpdate(
-                { sessionId: session.id },
-                { status: "succeeded", paymentIntentId: session.payment_intent },
-                { new: true }
-            );
-
-            if (payment) {
-                console.log("✅ Pago actualizado en la base de datos con PaymentIntent:", payment.paymentIntentId);
-            } else {
-                console.warn("⚠ No se encontró el pago en la base de datos con sessionId:", session.id);
-            }
-        }
-
         if (event.type === "payment_intent.succeeded") {
             const paymentIntent = event.data.object;
 
-            console.log("🔔 Webhook recibió PaymentIntent ID:", paymentIntent.id);
+            console.log("✅ Pago confirmado en Stripe:", paymentIntent.id);
 
-            // ✅ Función para reintentar la búsqueda del pago en la base de datos
-            const retryFindPayment = async (paymentIntentId, retries = 5) => {
-                for (let i = 0; i < retries; i++) {
-                    const payment = await Payment.findOne({ _id: paymentIntentId }) || 
-                                    await Payment.findOne({ paymentIntentId });
+            // ✅ Guardar el pago en MongoDB solo si se confirma
+            const payment = new Payment({
+                _id: paymentIntent.id,  // Usamos el ID de Stripe como _id
+                userId: paymentIntent.metadata?.userId || "desconocido",
+                paymentIntentId: paymentIntent.id,
+                amount: paymentIntent.amount,
+                currency: paymentIntent.currency,
+                status: "succeeded",
+                paymentUrl: "", // No se necesita, ya que el pago está completo
+                plan: paymentIntent.metadata?.plan || "desconocido"
+            });
 
-                    if (payment) return payment;
-
-                    console.warn(`⚠ Intento ${i + 1}: No se encontró el pago, reintentando en 1s...`);
-                    await new Promise((resolve) => setTimeout(resolve, 1000));
-                }
-                return null;
-            };
-
-            // 🔹 Intentar encontrar el pago antes de actualizarlo
-            const payment = await retryFindPayment(paymentIntent.id);
-
-            if (payment) {
-                payment.status = "succeeded";
-                await payment.save();
-                console.log("✅ Pago exitoso actualizado en la base de datos:", paymentIntent.id);
-            } else {
-                console.warn("⚠ No se encontró el pago en la base de datos después de varios intentos.");
-            }
-        }
-
-        if (event.type === "payment_intent.payment_failed") {
-            const paymentIntent = event.data.object;
-
-            console.warn("❌ Pago fallido:", paymentIntent.id, " Razón:", paymentIntent.last_payment_error?.message);
-
-            // 🔹 Intentar encontrar el pago antes de actualizarlo
-            const payment = await Payment.findOne({ _id: paymentIntent.id }) || 
-                            await Payment.findOne({ paymentIntentId });
-
-            if (payment) {
-                payment.status = "failed";
-                await payment.save();
-                console.log("❌ Pago fallido registrado en la base de datos:", paymentIntent.id);
-            } else {
-                console.warn("⚠ No se encontró el pago en la base de datos.");
-            }
+            await payment.save();
+            console.log("✅ Pago guardado en MongoDB con ID:", payment._id);
         }
 
     } catch (dbError) {
@@ -97,6 +49,7 @@ const stripeWebhook = async (req, res) => {
 
     res.json({ received: true });
 };
+
 
 module.exports = {
     stripeWebhook,

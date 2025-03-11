@@ -25,11 +25,12 @@ const createPayment = async (req, res) => {
             return res.status(400).json({ error: "Plan no válido" });
         }
 
-        // ✅ Crear el `PaymentIntent` pero NO guardarlo en MongoDB aún
+        // ✅ Crear `PaymentIntent` con `metadata` (userId y plan)
         const paymentIntent = await stripe.paymentIntents.create({
             amount,
             currency,
-            automatic_payment_methods: { enabled: true }
+            automatic_payment_methods: { enabled: true },
+            metadata: { userId, plan: planNumber } // 👈 Pasamos userId y plan
         });
 
         console.log("🔹 Nuevo PaymentIntent creado en Stripe:", paymentIntent.id);
@@ -45,6 +46,7 @@ const createPayment = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 
 

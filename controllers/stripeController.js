@@ -26,16 +26,25 @@ const stripeWebhook = async (req, res) => {
 
             console.log("✅ Pago confirmado en Stripe:", paymentIntent.id);
 
-            // ✅ Guardar el pago en MongoDB solo si se confirma
+            // ✅ Extraer `userId` y `plan` de `metadata`
+            const userId = paymentIntent.metadata.userId || null;
+            const plan = Number(paymentIntent.metadata.plan) || null;
+
+            if (!userId || !plan) {
+                console.error("❌ Faltan `userId` o `plan` en metadata del PaymentIntent.");
+                return res.status(400).json({ error: "Faltan datos en metadata." });
+            }
+
+            // ✅ Guardar el pago en MongoDB solo si tiene los datos completos
             const payment = new Payment({
-                _id: paymentIntent.id,  // Usamos el ID de Stripe como _id
-                userId: paymentIntent.metadata?.userId || "desconocido",
+                _id: paymentIntent.id, // Usamos el ID de Stripe como _id
+                userId, // Ahora es un ObjectId válido
                 paymentIntentId: paymentIntent.id,
                 amount: paymentIntent.amount,
                 currency: paymentIntent.currency,
                 status: "succeeded",
-                paymentUrl: "", // No se necesita, ya que el pago está completo
-                plan: paymentIntent.metadata?.plan || "desconocido"
+                plan,
+                paymentUrl: "" // No se necesita, ya que el pago está completo
             });
 
             await payment.save();
@@ -49,6 +58,7 @@ const stripeWebhook = async (req, res) => {
 
     res.json({ received: true });
 };
+
 
 
 module.exports = {

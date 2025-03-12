@@ -12,6 +12,8 @@ const Publication = require("../models/publication")
 const Follow = require("../models/follow")
 const Preferences = require('../models/preferences');
 const Payment = require("../models/payment");
+const Story = require('../models/story');
+const InteractionStats = require("../models/interactionStats");
 
 //Importar servicios
 const jwt = require('../services/jwt');
@@ -222,7 +224,7 @@ const profile = async (req, res) => {
         const id = req.params.id;
 
         // Buscar al usuario por ID y excluir password y otp
-        const userFound = await user.findById(id).select({ password: 0, otp: 0 });
+        let userFound = await user.findById(id).select({ password: 0, otp: 0 });
 
         if (!userFound) {
             return res.status(404).send({
@@ -231,14 +233,27 @@ const profile = async (req, res) => {
             });
         }
 
+        // Asegurar que interactions existe antes de actualizar profileViews
+        await user.updateOne(
+            { _id: id },
+            { $inc: { profileViews: 1 } } // ✅ Ahora se incrementa correctamente
+        );
+        console.log(`🔹 profileViews actualizado para el usuario ${id}`);
+        
+        // 🔄 Recargar el usuario actualizado
+        userFound = await user.findById(id).select({ password: 0, otp: 0 });
+        
+        console.log(`✅ profileViews actual: ${userFound.profileViews}`);
+        
+
         // Buscar el último pago exitoso del usuario
         const payment = await Payment.findOne({ userId: id })
             .sort({ createdAt: -1 });
 
-        if (payment && 
+        if (payment &&
             (payment.status === 'succeeded' || payment.status === 'completed') &&
             !userFound.payment_status) {
-            
+
             // Actualizar payment_status a true en el modelo de usuario
             userFound.payment_status = true;
             await userFound.save();
@@ -299,9 +314,10 @@ const profile = async (req, res) => {
             counters: {
                 following,
                 followed,
-                publications: publicationsCount
+                publications: publicationsCount,
+                profileViews: userFound.interactions?.profileViews || 0 // Evitar error si sigue sin existir
             },
-            isFollowing: !!isFollowing, 
+            isFollowing: !!isFollowing,
             publications: publicationsWithLikes,
             role: userFound.role
         });
@@ -314,7 +330,6 @@ const profile = async (req, res) => {
         });
     }
 };
-
 
 
 
@@ -334,7 +349,7 @@ const list = async (req, res) => {
                 page,
                 limit: itemsPerPage,
                 sort: { _id: 1 }, // Ordenar por ID ascendente
-                select: "-password -email -role -__v", // Excluir campos sensibles
+                select: "-password -__v", // Excluir solo la contraseña y versión de documento
             }
         );
 
@@ -346,9 +361,6 @@ const list = async (req, res) => {
             });
         }
 
-        // Obtener IDs de los usuarios que sigo y que me siguen
-        const followUserIds = await followServices.followUserIds(req.user.id);
-
         return res.status(200).send({
             status: "success",
             message: "List of users",
@@ -356,10 +368,7 @@ const list = async (req, res) => {
             itemsPerPage: result.limit,
             total: result.totalDocs,
             totalPages: result.totalPages,
-            users: result.docs, // Lista de usuarios paginada
-            user_following: followUserIds.following, // Usuarios que sigo
-            user_follow_me: followUserIds.followers, // Usuarios que me siguen
-            followersCount: followUserIds.followersCount, // Cantidad de seguidores
+            users: result.docs, // Lista de usuarios paginada sin contraseña
         });
     } catch (error) {
         console.error("List function error:", error);
@@ -370,6 +379,7 @@ const list = async (req, res) => {
         });
     }
 };
+
 
 const update = async (req, res) => {
     const user_identity = req.user;
@@ -776,6 +786,67 @@ const searchAll = async (req, res) => {
 };
 
 
+const getInteractions = async (req, res) => {
+    try {
+        // Obtener cantidad de seguidores totales
+        const totalFollowers = await Follow.countDocuments();
+        const totalPublications = await Publication.countDocuments();
+        const totalStories = await Story.countDocuments();
+        await user.updateMany(
+            { "profileViews": { $exists: false } },
+            { $set: { "profileViews": 0 } }
+        );
+
+        const totalProfileViewsResult = await user.aggregate([
+            { $match: { "profileViews": { $gte: 0 } } },
+            { $group: { _id: null, total: { $sum: "$profileViews" } } }
+        ]);
+        const totalProfileViews = totalProfileViewsResult.length > 0 ? totalProfileViewsResult[0].total : 0;
+        const totalUsers = await user.countDocuments();
+
+        const totalLikesResult = await Publication.aggregate([
+            { $group: { _id: null, total: { $sum: "$likes" } } }
+        ]);
+        const totalLikes = totalLikesResult.length > 0 ? totalLikesResult[0].total : 0;
+
+        const totalSavedPublications = await SavedPublication.countDocuments();
+
+        const grandTotal = totalFollowers + totalPublications + totalStories +
+            totalProfileViews + totalUsers + totalLikes + totalSavedPublications;
+
+        // Guardar las estadísticas en la base de datos
+        const newStat = new InteractionStats({
+            totalFollowers,
+            totalPublications,
+            totalStories,
+            totalProfileViews,
+            totalUsers,
+            totalLikes,
+            totalSavedPublications,
+            grandTotal
+        });
+
+        await newStat.save(); // Guardar el registro en la BD
+
+        res.status(200).json({
+            status: "success",
+            interactions: {
+                totalFollowers,
+                totalPublications,
+                totalStories,
+                totalProfileViews,
+                totalUsers,
+                totalLikes,
+                totalSavedPublications,
+                grandTotal
+            }
+        });
+    } catch (error) {
+        console.error("❌ Error obteniendo interacciones:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
 
 //Expoortar las acciones
 module.exports = {
@@ -792,4 +863,5 @@ module.exports = {
     countUsersByRole,
     updateFcmToken,
     searchAll,
+    getInteractions,
 };

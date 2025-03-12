@@ -86,8 +86,14 @@ const allPayments = async (req, res) => {
             sort: { createdAt: -1 } // Ordenar por fecha de creación (más reciente primero)
         };
 
-        // Buscar todos los pagos con paginación
-        const payments = await Payment.paginate({}, options);
+        // Buscar todos los pagos con paginación y popular userId sin password
+        const payments = await Payment.paginate({}, {
+            ...options,
+            populate: {
+                path: "userId",
+                select: "-password -__v" // Excluir contraseña y versión del documento
+            }
+        });
 
         if (!payments || payments.docs.length === 0) {
             return res.status(404).json({ message: "No payments found" });
@@ -98,6 +104,7 @@ const allPayments = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 const getPaymentStatus = async (req, res) => {
     try {

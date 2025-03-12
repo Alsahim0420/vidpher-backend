@@ -58,6 +58,18 @@ const UserSchema = new Schema({
     plan_type: { 
         type: Number, 
         default: 0 
+    },
+    publicationsCount: {
+        type: Number, 
+        default: 0 
+    },
+    storiesCount: {
+        type: Number, 
+        default: 0 
+    },
+    profileViews: { 
+        type: Number, 
+        default: 0 
     }
 });
 

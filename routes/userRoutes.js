@@ -47,6 +47,7 @@ router.post("/update/fcm/token", check.auth, userController.updateFcmToken);
 
 //Dashboard
 router.get('/users/count/by/role', check.auth, userController.countUsersByRole);
+router.get('/interactions', check.auth, userController.getInteractions);
 
 // Ruta para buscar
 router.get("/search", check.auth, userController.searchAll);

@@ -39,11 +39,13 @@ router.get("/media", publicationController.media);
 router.get("/feed", check.auth, publicationController.feed);
 router.post("/:publicationId/like", check.auth, publicationController.likePublication);
 router.post("/:publicationId/comment", check.auth, publicationController.addComment);
-router.put('/update/:publicationId/toggle/watch', check.auth, publicationController.toggleWatchPublication);
+
 
 //Dashboard
 router.get("/allPublications", check.auth, publicationController.allPublications);
 router.put('/updatePublication/:id', [check.auth, upload.single("file0")], publicationController.updatePublication);
+router.put('/update/:publicationId/toggle/watch', check.auth, publicationController.toggleWatchPublication);
+router.delete('/delete/data/:id', check.auth, publicationController.deleteItem);
 
 // Exportar el módulo de rutas
 module.exports = router;

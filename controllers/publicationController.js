@@ -12,6 +12,7 @@ const mongoose = require("mongoose");
 
 //Importar modelos
 const Publication = require("../models/publication");
+const Story = require("../models/story");
 
 //Impotar servicios
 const followService = require("../services/followService");
@@ -496,35 +497,71 @@ const addComment = async (req, res) => {
 
 
 //Dashboard endpoint
-
 // Obtener todas las publicaciones
 const allPublications = async (req, res) => {
     try {
-        // Buscar todas las historias en la base de datos
-        const publications = await Publication.find();
+        console.log("📌 Buscando publicaciones...");
 
-        // Comprobar si hay historias
-        if (!publications || publications.length === 0) {
+        // Verificar si el esquema de Publication tiene stories
+        const publicationSchemaPaths = Object.keys(Publication.schema.paths);
+        const hasStories = publicationSchemaPaths.includes("stories");
+
+        let query = Publication.find()
+            .populate({
+                path: "user",
+                select: "-password -token" // Excluir datos sensibles
+            })
+            .populate({
+                path: "comments",
+                populate: {
+                    path: "user",
+                    model: "User",
+                    select: "-password -token" // Excluir datos sensibles en comentarios
+                }
+            });
+
+        // Solo hacer populate de stories si existe en el esquema
+        if (hasStories) {
+            query = query.populate({
+                path: "stories",
+                model: "Story",
+                populate: {
+                    path: "user",
+                    model: "User",
+                    select: "-password -token"
+                }
+            });
+        } else {
+            console.warn("⚠ El campo 'stories' no existe en el esquema de Publication");
+        }
+
+        const data = await query;
+
+        if (!data || data.length === 0) {
+            console.warn("⚠ No se encontraron publicaciones");
             return res.status(404).send({
                 error: "error",
-                message: "No stories found",
+                message: "No publications found",
             });
         }
 
-        // Devolver respuesta con las historias
+        console.log("✅ Publicaciones encontradas:", data.length);
+
         return res.status(200).json({
             status: "success",
-            message: "List of all stories",
-            stories: publications,
+            message: "List of all publications",
+            data: data,
         });
     } catch (error) {
-        // Manejar errores
+        console.error("❌ Error al obtener publicaciones:", error);
         return res.status(500).send({
             error: "error",
-            message: "Failed to retrieve stories",
+            message: "Failed to retrieve publications",
+            details: error.message
         });
     }
 };
+
 
 
 const toggleWatchPublication = async (req, res) => {
@@ -544,7 +581,7 @@ const toggleWatchPublication = async (req, res) => {
 
         res.status(200).json({
             message: `watchPublication updated to ${publication.watchPublication}`,
-            publication
+            watchPublication: publication.watchPublication
         });
     } catch (error) {
         console.error("Error toggling watchPublication:", error);
@@ -630,6 +667,31 @@ const updatePublication = async (req, res) => {
 };
 
 
+const deleteItem = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Buscar en ambas colecciones
+        const story = await Story.findById(id);
+        if (story) {
+            await Story.findByIdAndDelete(id);
+            return res.status(200).json({ message: "Story deleted successfully" });
+        }
+
+        const publication = await Publication.findById(id);
+        if (publication) {
+            await Publication.findByIdAndDelete(id);
+            return res.status(200).json({ message: "Publication deleted successfully" });
+        }
+
+        return res.status(404).json({ message: "Item not found" });
+    } catch (error) {
+        console.error("❌ Error deleting item:", error);
+        return res.status(500).json({ error: "Server error" });
+    }
+};
+
+
 
 
 
@@ -646,5 +708,6 @@ module.exports = {
     addComment,
     allPublications,
     toggleWatchPublication,
-    updatePublication
+    updatePublication,
+    deleteItem
 };

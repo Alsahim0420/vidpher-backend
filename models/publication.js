@@ -44,6 +44,10 @@ const PublicationSchema = Schema({
     },
     title: String,
     subtitle: String,
+    views: { 
+        type: Number, 
+        default: 0 
+    },
 });
 
 

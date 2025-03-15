@@ -30,6 +30,17 @@ const prueba_user = (req, res) => {
     })
 };
 
+const normalizeText = (text) => {
+    return String(text || "")
+        .toLowerCase()
+        .normalize("NFD") // Descompone caracteres acentuados
+        .replace(/[\u0300-\u036f]/g, "") // Elimina las tildes
+        .trim()
+        .replace(/\s/g, "") // Elimina TODOS los espacios
+        .replace(/[^a-z0-9ñ]/g, ""); // Mantiene solo letras y números
+};
+
+
 const register = async (req, res) => {
     // Recoger datos de la petición
     const params = req.body;
@@ -239,12 +250,12 @@ const profile = async (req, res) => {
             { $inc: { profileViews: 1 } } // ✅ Ahora se incrementa correctamente
         );
         console.log(`🔹 profileViews actualizado para el usuario ${id}`);
-        
+
         // 🔄 Recargar el usuario actualizado
         userFound = await user.findById(id).select({ password: 0, otp: 0 });
-        
+
         console.log(`✅ profileViews actual: ${userFound.profileViews}`);
-        
+
 
         // Buscar el último pago exitoso del usuario
         const payment = await Payment.findOne({ userId: id })
@@ -698,54 +709,86 @@ const searchAll = async (req, res) => {
             return res.status(400).json({ message: "The search parameter is mandatory." });
         }
 
+        const queryNormalized = normalizeText(query);
+
         let users = [];
         let publications = [];
 
-        if (!filter || filter === "cuentas") {
+        if (!filter || filter === "cuentas" || filter === "categoria") {
             users = await user.find({
                 $or: [
-                    { username: new RegExp(query, "i") },
-                    { email: new RegExp(query, "i") }
+                    { username: { $regex: queryNormalized, $options: "i" } },
+                    { username: { $regex: query, $options: "i" } },
+                    { email: { $regex: queryNormalized, $options: "i" } },
+                    { email: { $regex: query, $options: "i" } }
                 ]
             }).select("-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount").lean();
 
+
+            users = users.filter(user =>
+                normalizeText(user.username).includes(queryNormalized) ||
+                normalizeText(user.email).includes(queryNormalized)
+            );
+
             const usersByPreferences = await Preferences.find({
-                preferences: new RegExp(query, "i")
-            }).populate({ path: "user", select: "-password -__v" }).lean();
+                $or: [
+                    { preferences: { $regex: queryNormalized, $options: "i" } },
+                    { preferences: { $regex: query, $options: "i" } } // Búsqueda con y sin tildes
+                ]
+            }).populate({
+                path: "user",
+                select: "-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount"
+            }).lean();
+
+
 
             usersByPreferences.forEach(pref => {
-                if (pref.user) users.push(pref.user);
-            });
-        }
-
-        if (!filter || filter === "categoria") {
-            const usersByCategory = await Preferences.find({
-                preferences: new RegExp(query, "i")
-            }).populate({ path: "user", select: "-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount" }).lean();
-
-            usersByCategory.forEach(pref => {
-                if (pref.user) users.push(pref.user);
+                if (
+                    pref.user &&
+                    pref.preferences.some(p => normalizeText(p).includes(queryNormalized))
+                ) {
+                    users.push(pref.user);
+                }
             });
         }
 
         if (!filter || filter === "ubicacion") {
             publications = await Publication.find({
-                location: new RegExp(query, "i")
+                $or: [
+                    { location: { $regex: queryNormalized, $options: "i" } },
+                    { location: { $regex: query, $options: "i" } }
+                ]
             }).populate({ path: "user", select: "-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount" }).lean();
+
+
+            publications = publications.filter(pub =>
+                normalizeText(pub.location).includes(queryNormalized)
+            );
 
             const usersByLocation = await user.find({
                 $or: [
-                    { city: new RegExp(query, "i") },
-                    { country: new RegExp(query, "i") }
+                    { city: { $regex: queryNormalized, $options: "i" } },
+                    { city: { $regex: query, $options: "i" } },
+                    { country: { $regex: queryNormalized, $options: "i" } },
+                    { country: { $regex: query, $options: "i" } }
                 ]
             }).select("-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount").lean();
+            
 
-            users.push(...usersByLocation);
+            usersByLocation.forEach(user => {
+                if (
+                    normalizeText(user.city).includes(queryNormalized) ||
+                    normalizeText(user.country).includes(queryNormalized)
+                ) {
+                    users.push(user);
+                }
+            });
         }
 
-        // Eliminar duplicados de users usando un Map
+        // Eliminar duplicados usando un Map con el _id
         const uniqueUsers = new Map();
         users.forEach(user => uniqueUsers.set(user._id.toString(), user));
+
         let uniqueUsersArray = Array.from(uniqueUsers.values());
 
         // Ordenar usuarios y publicaciones por type_plan (si payment_status es true)

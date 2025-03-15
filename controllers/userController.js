@@ -712,7 +712,6 @@ const searchAll = async (req, res) => {
         const queryNormalized = normalizeText(query);
 
         let users = [];
-        let publications = [];
 
         if (!filter || filter === "cuentas" || filter === "categoria") {
             users = await user.find({
@@ -724,7 +723,6 @@ const searchAll = async (req, res) => {
                 ]
             }).select("-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount").lean();
 
-
             users = users.filter(user =>
                 normalizeText(user.username).includes(queryNormalized) ||
                 normalizeText(user.email).includes(queryNormalized)
@@ -733,14 +731,12 @@ const searchAll = async (req, res) => {
             const usersByPreferences = await Preferences.find({
                 $or: [
                     { preferences: { $regex: queryNormalized, $options: "i" } },
-                    { preferences: { $regex: query, $options: "i" } } // Búsqueda con y sin tildes
+                    { preferences: { $regex: query, $options: "i" } }
                 ]
             }).populate({
                 path: "user",
                 select: "-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount"
             }).lean();
-
-
 
             usersByPreferences.forEach(pref => {
                 if (
@@ -753,18 +749,6 @@ const searchAll = async (req, res) => {
         }
 
         if (!filter || filter === "ubicacion") {
-            publications = await Publication.find({
-                $or: [
-                    { location: { $regex: queryNormalized, $options: "i" } },
-                    { location: { $regex: query, $options: "i" } }
-                ]
-            }).populate({ path: "user", select: "-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount" }).lean();
-
-
-            publications = publications.filter(pub =>
-                normalizeText(pub.location).includes(queryNormalized)
-            );
-
             const usersByLocation = await user.find({
                 $or: [
                     { city: { $regex: queryNormalized, $options: "i" } },
@@ -774,7 +758,6 @@ const searchAll = async (req, res) => {
                 ]
             }).select("-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount").lean();
             
-
             usersByLocation.forEach(user => {
                 if (
                     normalizeText(user.city).includes(queryNormalized) ||
@@ -785,24 +768,18 @@ const searchAll = async (req, res) => {
             });
         }
 
-        // Eliminar duplicados usando un Map con el _id
         const uniqueUsers = new Map();
         users.forEach(user => uniqueUsers.set(user._id.toString(), user));
 
         let uniqueUsersArray = Array.from(uniqueUsers.values());
 
-        // Ordenar usuarios y publicaciones por type_plan (si payment_status es true)
         const sortByPlanType = (a, b) => (b.type_plan || 0) - (a.type_plan || 0);
 
         const premiumUsers = uniqueUsersArray.filter(user => user.payment_status).sort(sortByPlanType);
         const regularUsers = uniqueUsersArray.filter(user => !user.payment_status);
         uniqueUsersArray = [...premiumUsers, ...regularUsers];
 
-        const premiumPublications = publications.filter(pub => pub.user.payment_status).sort(sortByPlanType);
-        const regularPublications = publications.filter(pub => !pub.user.payment_status);
-        publications = [...premiumPublications, ...regularPublications];
-
-        if (uniqueUsersArray.length === 0 && publications.length === 0) {
+        if (uniqueUsersArray.length === 0) {
             return res.status(200).json({
                 status: "success",
                 message: "Consultation carried out successfully.",
@@ -814,14 +791,14 @@ const searchAll = async (req, res) => {
             status: "success",
             message: "Successful search",
             data: {
-                users: uniqueUsersArray,
-                publications
+                users: uniqueUsersArray
             }
         });
     } catch (error) {
         res.status(500).json({ message: "Error en la búsqueda", error: error.message });
     }
 };
+
 
 
 

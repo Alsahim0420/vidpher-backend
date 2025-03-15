@@ -699,7 +699,6 @@ const searchAll = async (req, res) => {
         }
 
         let users = [];
-        let preferences = [];
         let publications = [];
 
         if (!filter || filter === "cuentas") {
@@ -708,7 +707,7 @@ const searchAll = async (req, res) => {
                     { username: new RegExp(query, "i") },
                     { email: new RegExp(query, "i") }
                 ]
-            }).select("-password -__v").lean();
+            }).select("-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount").lean();
 
             const usersByPreferences = await Preferences.find({
                 preferences: new RegExp(query, "i")
@@ -720,32 +719,33 @@ const searchAll = async (req, res) => {
         }
 
         if (!filter || filter === "categoria") {
-            preferences = await Preferences.find({
+            const usersByCategory = await Preferences.find({
                 preferences: new RegExp(query, "i")
-            }).populate({ path: "user", select: "-password -__v" }).lean();
+            }).populate({ path: "user", select: "-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount" }).lean();
+
+            usersByCategory.forEach(pref => {
+                if (pref.user) users.push(pref.user);
+            });
         }
 
         if (!filter || filter === "ubicacion") {
             publications = await Publication.find({
                 location: new RegExp(query, "i")
-            }).populate({ path: "user", select: "-password -__v" }).lean();
+            }).populate({ path: "user", select: "-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount" }).lean();
 
             const usersByLocation = await user.find({
                 $or: [
                     { city: new RegExp(query, "i") },
                     { country: new RegExp(query, "i") }
                 ]
-            }).select("-password -__v").lean();
+            }).select("-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount").lean();
 
             users.push(...usersByLocation);
         }
 
+        // Eliminar duplicados de users usando un Map
         const uniqueUsers = new Map();
         users.forEach(user => uniqueUsers.set(user._id.toString(), user));
-        preferences.forEach(pref => {
-            if (pref.user) uniqueUsers.set(pref.user._id.toString(), pref.user);
-        });
-
         let uniqueUsersArray = Array.from(uniqueUsers.values());
 
         // Ordenar usuarios y publicaciones por type_plan (si payment_status es true)
@@ -759,11 +759,7 @@ const searchAll = async (req, res) => {
         const regularPublications = publications.filter(pub => !pub.user.payment_status);
         publications = [...premiumPublications, ...regularPublications];
 
-        if (!filter || filter === "categoria") {
-            preferences.sort((a, b) => sortByPlanType(a.user, b.user));
-        }
-
-        if (uniqueUsersArray.length === 0 && preferences.length === 0 && publications.length === 0) {
+        if (uniqueUsersArray.length === 0 && publications.length === 0) {
             return res.status(200).json({
                 status: "success",
                 message: "Consultation carried out successfully.",
@@ -776,7 +772,6 @@ const searchAll = async (req, res) => {
             message: "Successful search",
             data: {
                 users: uniqueUsersArray,
-                preferences,
                 publications
             }
         });
@@ -784,6 +779,7 @@ const searchAll = async (req, res) => {
         res.status(500).json({ message: "Error en la búsqueda", error: error.message });
     }
 };
+
 
 
 const getInteractions = async (req, res) => {

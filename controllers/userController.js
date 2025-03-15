@@ -779,25 +779,18 @@ const searchAll = async (req, res) => {
         const regularUsers = uniqueUsersArray.filter(user => !user.payment_status);
         uniqueUsersArray = [...premiumUsers, ...regularUsers];
 
-        if (uniqueUsersArray.length === 0) {
-            return res.status(200).json({
-                status: "success",
-                message: "Consultation carried out successfully.",
-                data: []
-            });
-        }
-
         res.status(200).json({
             status: "success",
             message: "Successful search",
             data: {
-                users: uniqueUsersArray
+                users: uniqueUsersArray.length > 0 ? uniqueUsersArray : []
             }
         });
     } catch (error) {
         res.status(500).json({ message: "Error en la búsqueda", error: error.message });
     }
 };
+
 
 
 

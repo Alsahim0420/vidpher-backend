@@ -21,57 +21,64 @@ const upload = async (req, res) => {
             });
         }
 
-        // Obtener el nombre del archivo y la extensión
         const file = req.file.originalname;
         const extension = file.split(".").pop().toLowerCase();
 
-        // Validar la extensión del archivo
-        if (!["jpg", "jpeg", "png", "gif", "mp4", "mov", "avi", "mkv"].includes(extension)) {
-            try {
-                await fs.unlinkSync(req.file.path); // Eliminar archivo
-            } catch (err) {
-                return res.status(500).json({
-                    status: "error",
-                    message: "Failed to delete invalid file",
-                    error: err,
-                });
-            }
+        // Extensiones permitidas
+        const imageExtensions = ["jpg", "jpeg", "png", "gif"];
+        const videoExtensions = ["mp4", "mov", "avi", "mkv"];
 
+        let resourceType = "auto"; // Predeterminado, Cloudinary decidirá el tipo
+
+        if (imageExtensions.includes(extension)) {
+            resourceType = "image";
+        } else if (videoExtensions.includes(extension)) {
+            resourceType = "video";
+        } else {
+            // Si la extensión no es válida, eliminar archivo y devolver error
+            await fs.promises.unlink(req.file.path).catch(() => {});
             return res.status(400).json({
                 status: "error",
                 message: "File extension is invalid",
             });
         }
 
-        // Subir archivo a Cloudinary
-        const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: "stories", // Carpeta opcional en Cloudinary
-        });
+        try {
+            // Subir archivo a Cloudinary con el tipo adecuado
+            const result = await cloudinary.uploader.upload(req.file.path, {
+                folder: "stories",
+                resource_type: resourceType,
+            });
 
-        // Eliminar archivo temporal
-        fs.unlinkSync(req.file.path);
+            // Eliminar archivo temporal
+            await fs.promises.unlink(req.file.path).catch(() => {});
 
-        // Crear una nueva historia en la base de datos con el usuario poblado
-        const newStory = new Story({
-            user: populatedUser, // Se guarda el usuario con sus datos poblados
-            text: req.body.text || "",
-            file: result.secure_url,
-            cloudinaryPublicId: result.public_id,
-            expiresAt: Date.now() + 24 * 60 * 60 * 1000,
-            suggested: req.body.suggested || false,
-        });
+            // Crear una nueva historia en la base de datos
+            const newStory = new Story({
+                user: populatedUser,
+                text: req.body.text || "",
+                file: result.secure_url,
+                cloudinaryPublicId: result.public_id,
+                expiresAt: Date.now() + 24 * 60 * 60 * 1000,
+                suggested: req.body.suggested || false,
+            });
 
-        await newStory.save();
+            await newStory.save();
+            const populatedStory = await newStory.populate("user", "-password -__v -role -email");
 
-        // Poblar la historia con el usuario
-        const populatedStory = await newStory.populate("user", "-password -__v -role -email");
-
-        // Responder con éxito
-        return res.status(200).json({
-            status: "success",
-            message: "New story successfully created",
-        });
-
+            return res.status(200).json({
+                status: "success",
+                message: "New story successfully created",
+                story: populatedStory,
+            });
+        } catch (cloudinaryError) {
+            await fs.promises.unlink(req.file.path).catch(() => {});
+            return res.status(400).json({
+                status: "error",
+                message: "Invalid file upload",
+                error: cloudinaryError.message || cloudinaryError,
+            });
+        }
     } catch (err) {
         console.error(err);
         return res.status(500).json({

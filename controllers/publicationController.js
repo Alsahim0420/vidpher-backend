@@ -94,7 +94,7 @@ const save = async (req, res) => {
         return res.status(200).json({
             status: "success",
             message: "The publication has been saved",
-            publication: publicationStored,
+            publication: true,
         });
 
     } catch (err) {
@@ -103,6 +103,7 @@ const save = async (req, res) => {
             status: "error",
             message: "Publication not saved",
             error: err.message || err,
+            publication: false,
         });
     }
 };

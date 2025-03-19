@@ -278,9 +278,9 @@ const feed = async (req, res) => {
         const followService = require("../services/followService");
         const { following } = await followService.followUserIds(userId);
 
-        // Obtener publicaciones solo de los usuarios seguidos
+        // Obtener publicaciones solo de los usuarios seguidos, ordenadas por fecha
         const publications = await Publication.find({ user: { $in: following } })
-            .sort({ createdAt: -1 })
+            .sort({ createdAt: -1 }) // Ordenar por fecha de creación DESCENDENTE
             .populate({
                 path: "user",
                 select: "-password -__v -createdAt",
@@ -311,22 +311,10 @@ const feed = async (req, res) => {
             return publicationObj;
         });
 
-        // Separar publicaciones de usuarios con payment_status: true
-        const premiumPublications = publicationsWithMeta.filter(pub => pub.user.payment_status);
-        const regularPublications = publicationsWithMeta.filter(pub => !pub.user.payment_status);
-
-        // Combinar publicaciones priorizando las de usuarios con payment_status: true
-        const allPublications = [...premiumPublications, ...regularPublications];
-
-        // Eliminar duplicados y ordenar por type_plan de mayor a menor
-        const uniquePublications = Array.from(
-            new Map(allPublications.map(pub => [pub._id.toString(), pub])).values()
-        ).sort((a, b) => (b.user.type_plan || 0) - (a.user.type_plan || 0));
-
         return res.status(200).json({
             status: "success",
             message: "List of posts in the feed",
-            publications: uniquePublications,
+            publications: publicationsWithMeta, // Publicaciones ya ordenadas por fecha
         });
     } catch (error) {
         return res.status(500).json({

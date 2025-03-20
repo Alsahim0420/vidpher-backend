@@ -714,26 +714,14 @@ const searchAll = async (req, res) => {
         let users = [];
 
         if (!filter || filter === "cuentas" || filter === "categoria") {
-            users = await user.find({
-                $or: [
-                    { username: { $regex: queryNormalized, $options: "i" } },
-                    { username: { $regex: query, $options: "i" } },
-                    { email: { $regex: queryNormalized, $options: "i" } },
-                    { email: { $regex: query, $options: "i" } }
-                ]
-            }).select("-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount").lean();
+            users = await user.find().select("-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount").lean();
 
             users = users.filter(user =>
                 normalizeText(user.username).includes(queryNormalized) ||
                 normalizeText(user.email).includes(queryNormalized)
             );
 
-            const usersByPreferences = await Preferences.find({
-                $or: [
-                    { preferences: { $regex: queryNormalized, $options: "i" } },
-                    { preferences: { $regex: query, $options: "i" } }
-                ]
-            }).populate({
+            const usersByPreferences = await Preferences.find().populate({
                 path: "user",
                 select: "-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount"
             }).lean();
@@ -749,14 +737,7 @@ const searchAll = async (req, res) => {
         }
 
         if (!filter || filter === "ubicacion") {
-            const usersByLocation = await user.find({
-                $or: [
-                    { city: { $regex: queryNormalized, $options: "i" } },
-                    { city: { $regex: query, $options: "i" } },
-                    { country: { $regex: queryNormalized, $options: "i" } },
-                    { country: { $regex: query, $options: "i" } }
-                ]
-            }).select("-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount").lean();
+            const usersByLocation = await user.find().select("-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount").lean();
             
             usersByLocation.forEach(user => {
                 if (

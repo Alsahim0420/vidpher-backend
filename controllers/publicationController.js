@@ -265,7 +265,7 @@ const feed = async (req, res) => {
     try {
         const userId = req.user.id.toString(); // Asegurar que userId sea string
 
-        // Buscar usuario logueado
+        // Buscar usuario logueado y obtener su rol
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({
@@ -274,63 +274,36 @@ const feed = async (req, res) => {
             });
         }
 
-        let publications;
+        console.log("🛠 Usuario encontrado:", user);
+        console.log("📌 Rol del usuario:", user.role);
 
-        if (userId.role === "2" || userId.role === "3") {
-            // Si el userId es "2" o "3", traer solo sus publicaciones
-            publications = await Publication.find({ user: userId })
-                .sort({ createdAt: -1 }) // Ordenar por fecha de creación DESCENDENTE
-                .populate({
-                    path: "user",
-                    select: "-password -__v -createdAt",
-                })
-                .populate({
-                    path: "comments.user",
-                    select: "-password -__v -createdAt",
-                });
-        } else {
-            // Obtener los usuarios seguidos por el usuario logueado usando followService
-            const followService = require("../services/followService");
-            const { following } = await followService.followUserIds(userId);
+        // Obtener los usuarios seguidos por el usuario logueado usando followService
+        const followService = require("../services/followService");
+        const { following } = await followService.followUserIds(userId);
 
-            // Obtener publicaciones solo de los usuarios seguidos, ordenadas por fecha
-            publications = await Publication.find({ user: { $in: following } })
-                .sort({ createdAt: -1 }) // Ordenar por fecha de creación DESCENDENTE
-                .populate({
-                    path: "user",
-                    select: "-password -__v -createdAt",
-                })
-                .populate({
-                    path: "comments.user",
-                    select: "-password -__v -createdAt",
-                });
-        }
+        // Agregar el propio usuario al array de búsqueda
+        const usersToFetch = [...following, userId];
 
-        // Obtener publicaciones guardadas del usuario logueado
-        const savedPublications = await SavedPublication.find({ user: userId })
-            .select("publication")
-            .lean();
-        const savedPublicationIds = new Set(savedPublications.map(sp => sp.publication.toString()));
+        console.log("📌 Obteniendo publicaciones de:", usersToFetch);
 
-        const publicationsWithMeta = publications.map(publication => {
-            const publicationObj = publication.toObject({ virtuals: true });
+        // Obtener publicaciones del usuario y de los que sigue
+        const publications = await Publication.find({ user: { $in: usersToFetch } })
+            .sort({ createdAt: -1 }) // Ordenar por fecha de creación DESCENDENTE
+            .populate({
+                path: "user",
+                select: "-password -__v -createdAt",
+            })
+            .populate({
+                path: "comments.user",
+                select: "-password -__v -createdAt",
+            });
 
-            // Verificar si la publicación está en likedBy
-            publicationObj.isLiked = publication.likedBy.some(likedUser => likedUser.toString() === userId);
-
-            // Verificar si la publicación está guardada
-            publicationObj.isSaved = savedPublicationIds.has(publication._id.toString());
-
-            // Ordenar comentarios por fecha descendente
-            publicationObj.comments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-            return publicationObj;
-        });
+        console.log("📄 Publicaciones encontradas:", publications.length);
 
         return res.status(200).json({
             status: "success",
             message: "List of posts in the feed",
-            publications: publicationsWithMeta, // Publicaciones ya ordenadas por fecha
+            publications,
         });
     } catch (error) {
         return res.status(500).json({
@@ -340,6 +313,9 @@ const feed = async (req, res) => {
         });
     }
 };
+
+
+
 
 
 

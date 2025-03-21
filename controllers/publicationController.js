@@ -274,21 +274,37 @@ const feed = async (req, res) => {
             });
         }
 
-        // Obtener los usuarios seguidos por el usuario logueado usando followService
-        const followService = require("../services/followService");
-        const { following } = await followService.followUserIds(userId);
+        let publications;
 
-        // Obtener publicaciones solo de los usuarios seguidos, ordenadas por fecha
-        const publications = await Publication.find({ user: { $in: following } })
-            .sort({ createdAt: -1 }) // Ordenar por fecha de creación DESCENDENTE
-            .populate({
-                path: "user",
-                select: "-password -__v -createdAt",
-            })
-            .populate({
-                path: "comments.user",
-                select: "-password -__v -createdAt",
-            });
+        if (userId.role === "2" || userId.role === "3") {
+            // Si el userId es "2" o "3", traer solo sus publicaciones
+            publications = await Publication.find({ user: userId })
+                .sort({ createdAt: -1 }) // Ordenar por fecha de creación DESCENDENTE
+                .populate({
+                    path: "user",
+                    select: "-password -__v -createdAt",
+                })
+                .populate({
+                    path: "comments.user",
+                    select: "-password -__v -createdAt",
+                });
+        } else {
+            // Obtener los usuarios seguidos por el usuario logueado usando followService
+            const followService = require("../services/followService");
+            const { following } = await followService.followUserIds(userId);
+
+            // Obtener publicaciones solo de los usuarios seguidos, ordenadas por fecha
+            publications = await Publication.find({ user: { $in: following } })
+                .sort({ createdAt: -1 }) // Ordenar por fecha de creación DESCENDENTE
+                .populate({
+                    path: "user",
+                    select: "-password -__v -createdAt",
+                })
+                .populate({
+                    path: "comments.user",
+                    select: "-password -__v -createdAt",
+                });
+        }
 
         // Obtener publicaciones guardadas del usuario logueado
         const savedPublications = await SavedPublication.find({ user: userId })
@@ -324,7 +340,6 @@ const feed = async (req, res) => {
         });
     }
 };
-
 
 
 

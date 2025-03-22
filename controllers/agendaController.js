@@ -27,21 +27,13 @@ const save = async (req, res) => {
             });
         }
 
-        // Validar el formato de `time`, asegurando que tenga "AM" o "PM"
-        if (!/^\d{1,2}:\d{2} (AM|PM)$/.test(time)) {
-            return res.status(400).send({
-                status: 'error',
-                message: 'Time format must be in HH:MM AM/PM format.'
-            });
-        }
-
-        // Crear un nuevo registro en la agenda sin modificar `time`
+        // Crear un nuevo registro en la agenda sin validar `time`
         const newAgendaEntry = new Agenda({
             user: userId,
             location,
             title,
             duration: durationInHours, 
-            time, // Se guarda tal como lo envía el usuario
+            time, // Se guarda tal como lo envía el usuario sin validación
             date
         });
 
@@ -62,6 +54,7 @@ const save = async (req, res) => {
         });
     }
 };
+
 
 
 

@@ -433,17 +433,6 @@ const update = async (req, res) => {
             }
         });
 
-        // Comprobar si el email ya está en uso por otro usuario
-        if (user_update.email) {
-            const existingEmailUser = await user.findOne({ email: user_update.email.toLowerCase() });
-            if (existingEmailUser && existingEmailUser._id.toString() !== user_identity.id) {
-                return res.status(400).json({
-                    status: "error",
-                    message: "Email is already registered",
-                });
-            }
-        }
-
         // Guardar cambios y obtener el usuario actualizado
         const updatedUser = await user.findByIdAndUpdate(user_identity.id, user_update, { new: true });
 

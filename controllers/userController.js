@@ -293,12 +293,20 @@ const profile = async (req, res) => {
             });
         }
 
-        // Asegurar que interactions existe antes de actualizar profileViews
-        await user.updateOne(
-            { _id: id },
-            { $inc: { profileViews: 1 } } // ✅ Ahora se incrementa correctamente
-        );
-        console.log(`🔹 profileViews actualizado para el usuario ${id}`);
+        // Verificar si el usuario está viendo su propio perfil usando el token
+        const tokenUserId = req.user.id; // ID del usuario desde el token JWT
+        const isOwnProfile = tokenUserId === id;
+
+        // Solo incrementar profileViews si NO es el propio perfil del usuario
+        if (!isOwnProfile) {
+            await user.updateOne(
+                { _id: id },
+                { $inc: { profileViews: 1 } } // ✅ Solo se incrementa si no es el propio perfil
+            );
+            console.log(`🔹 profileViews actualizado para el usuario ${id} (visto por usuario ${tokenUserId})`);
+        } else {
+            console.log(`🔹 No se incrementa profileViews - usuario ${tokenUserId} viendo su propio perfil`);
+        }
 
         // 🔄 Recargar el usuario actualizado
         userFound = await user.findById(id).select({ password: 0, otp: 0 });

@@ -117,6 +117,7 @@ const register = async (req, res) => {
             city: params.city || "",
             image: imageValue, // 🔹 Se establece como null si está vacío
             cellphone: params.cellphone || "",
+            services: params.services || [],
         });
 
         const userStored = await user_obj.save();
@@ -727,7 +728,7 @@ const searchAll = async (req, res) => {
 
         if (!filter || filter === "ubicacion") {
             const usersByLocation = await user.find().select("-password -__v -fcmToken -createdAt -otp -payment_status -plan_type -profileViews -publicationsCount -storiesCount").lean();
-            
+
             usersByLocation.forEach(user => {
                 if (
                     normalizeText(user.city).includes(queryNormalized) ||

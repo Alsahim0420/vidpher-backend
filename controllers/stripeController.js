@@ -1,3 +1,5 @@
+require('dotenv').config(); // 👈 Importante: cargar .env antes de usar process.env
+
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const Payment = require("../models/payment");
 

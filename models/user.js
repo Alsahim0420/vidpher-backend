@@ -32,44 +32,48 @@ const UserSchema = new Schema({
     },
     otp: String,
     bio: String,
-    fcmToken: { 
-        type: String 
+    fcmToken: {
+        type: String
     },
-    gender: { 
-        type: String, 
-        default: "" 
+    gender: {
+        type: String,
+        default: ""
     },
-    country: { 
-        type: String, 
-        default: "" 
+    country: {
+        type: String,
+        default: ""
     },
-    city: { 
-        type: String, 
-        default: "" 
+    city: {
+        type: String,
+        default: ""
     },
-    cellphone: { 
-        type: String, 
-        default: "" 
+    cellphone: {
+        type: String,
+        default: ""
     },
-    payment_status: { 
-        type: Boolean, 
-        default: false 
+    payment_status: {
+        type: Boolean,
+        default: false
     },
-    plan_type: { 
-        type: Number, 
-        default: 0 
+    plan_type: {
+        type: Number,
+        default: 0
     },
     publicationsCount: {
-        type: Number, 
-        default: 0 
+        type: Number,
+        default: 0
     },
     storiesCount: {
-        type: Number, 
-        default: 0 
+        type: Number,
+        default: 0
     },
-    profileViews: { 
-        type: Number, 
-        default: 0 
+    profileViews: {
+        type: Number,
+        default: 0
+    },
+    services: {
+        type: [String],
+        default: []
     }
 });
 

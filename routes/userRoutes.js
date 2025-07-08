@@ -32,6 +32,7 @@ const upload = multer({ storage });
 router.get("/prueba_user", check.auth, userController.prueba_user);
 router.post("/register", userController.register);
 router.post("/login", userController.login);
+router.post("/check-username", userController.checkUsername);
 router.get("/profile/:id", check.auth, userController.profile);
 router.get("/list/:page?", check.auth, userController.list);
 

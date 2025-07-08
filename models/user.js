@@ -77,6 +77,9 @@ const UserSchema = new Schema({
     }
 });
 
+// Agregar índice único para username
+UserSchema.index({ username: 1 }, { unique: true });
+
 UserSchema.plugin(mongoosePaginate);
 
 module.exports = model('User', UserSchema, "Users");

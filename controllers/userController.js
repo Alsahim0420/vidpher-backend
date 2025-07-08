@@ -40,6 +40,54 @@ const normalizeText = (text) => {
         .replace(/[^a-z0-9ñ]/g, ""); // Mantiene solo letras y números
 };
 
+// Endpoint para verificar disponibilidad de username
+const checkUsername = async (req, res) => {
+    try {
+        const { username } = req.body;
+
+        // Validar que se proporcione el username
+        if (!username) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Username is required'
+            });
+        }
+
+        // Normalizar el username (opcional, para consistencia)
+        const normalizedUsername = username.toLowerCase().trim();
+
+        // Verificar si el username ya existe
+        const existingUser = await user.findOne({
+            username: { $regex: new RegExp(`^${normalizedUsername}$`, 'i') }
+        });
+
+        if (existingUser) {
+            return res.status(200).json({
+                status: 'error',
+                message: 'Username is already taken',
+                available: false,
+                username: normalizedUsername
+            });
+        }
+
+        // Username disponible
+        return res.status(200).json({
+            status: 'success',
+            message: 'Username is available',
+            available: true,
+            username: normalizedUsername
+        });
+
+    } catch (error) {
+        console.error('Error checking username:', error);
+        return res.status(500).json({
+            status: 'error',
+            message: 'Error checking username availability',
+            error: error.message
+        });
+    }
+};
+
 
 const register = async (req, res) => {
     // Recoger datos de la petición
@@ -844,4 +892,5 @@ module.exports = {
     updateFcmToken,
     searchAll,
     getInteractions,
+    checkUsername,
 };

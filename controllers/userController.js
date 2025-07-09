@@ -80,7 +80,7 @@ const checkUsername = async (req, res) => {
 
     } catch (error) {
         console.error('Error checking username:', error);
-        return res.status(500).json({
+        return res.status(400).json({
             status: 'error',
             message: 'Error checking username availability',
             error: error.message

@@ -44,7 +44,7 @@ const normalizeText = (text) => {
 const checkUsername = async (req, res) => {
     try {
         const { username } = req.body;
-
+        console.log(username);  
         // Validar que se proporcione el username
         if (!username) {
             return res.status(400).json({

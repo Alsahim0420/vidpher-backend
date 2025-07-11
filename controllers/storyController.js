@@ -1,4 +1,3 @@
-const fs = require('fs'); // Para trabajar con el sistema de archivos
 const cloudinary = require('cloudinary').v2; // Para subir archivos a Cloudinary
 const Story = require('../models/story'); // Asegúrate de importar el modelo Story
 const Follow = require('../models/follow')
@@ -36,7 +35,7 @@ const upload = async (req, res) => {
             resourceType = "video";
         } else {
             // Si la extensión no es válida, eliminar archivo y devolver error
-            await fs.promises.unlink(req.file.path).catch(() => {});
+            await fs.promises.unlink(req.file.path).catch(() => { });
             return res.status(400).json({
                 status: "error",
                 message: "File extension is invalid",
@@ -44,14 +43,15 @@ const upload = async (req, res) => {
         }
 
         try {
+            // Convert buffer to base64 for Cloudinary upload
+            const base64File = req.file.buffer.toString('base64');
+            const dataURI = `data:${req.file.mimetype};base64,${base64File}`;
+
             // Subir archivo a Cloudinary con el tipo adecuado
-            const result = await cloudinary.uploader.upload(req.file.path, {
+            const result = await cloudinary.uploader.upload(dataURI, {
                 folder: "stories",
                 resource_type: resourceType,
             });
-
-            // Eliminar archivo temporal
-            await fs.promises.unlink(req.file.path).catch(() => {});
 
             // Crear una nueva historia en la base de datos
             const newStory = new Story({
@@ -72,7 +72,6 @@ const upload = async (req, res) => {
                 story: populatedStory,
             });
         } catch (cloudinaryError) {
-            await fs.promises.unlink(req.file.path).catch(() => {});
             return res.status(400).json({
                 status: "error",
                 message: "Invalid file upload",
@@ -111,7 +110,7 @@ const allStories = async (req, res) => {
             return res.status(200).json({
                 "status": "success",
                 "message": "Stories retrieved successfully.",
-                "agenda": [   ]
+                "agenda": []
             });
         }
 

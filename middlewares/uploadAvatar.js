@@ -1,4 +1,3 @@
-const fs = require('fs'); // Para manejar archivos locales
 const cloudinary = require('../config/cloudinary-config'); // Importar configuración de Cloudinary
 const userController = require('../controllers/userController'); // Controlador del usuario
 
@@ -12,12 +11,12 @@ const uploadAvatar = async (req, res) => {
         }
 
         // Subir archivo a Cloudinary
-        const result = await cloudinary.uploader.upload(req.file.path, {
+        const base64Image = req.file.buffer.toString('base64');
+        const dataURI = `data:${req.file.mimetype};base64,${base64Image}`;
+
+        const result = await cloudinary.uploader.upload(dataURI, {
             folder: 'avatars', // Carpeta opcional en Cloudinary
         });
-
-        // Eliminar archivo temporal
-        fs.unlinkSync(req.file.path);
 
         // Llama al controlador para actualizar el usuario con la URL del avatar
         const updatedUser = await userController.updateAvatar(req.user.id, result.secure_url);

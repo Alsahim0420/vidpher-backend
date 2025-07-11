@@ -1,7 +1,5 @@
-//Importar modulos 
-const fs = require("fs");
-const path = require("path");
-const cloudinary = require('../config/cloudinary-config');
+// Importar dependencias
+const cloudinary = require('cloudinary').v2;
 const Suggestion = require('../models/suggestions');
 const User = require("../models/user");
 const SavedPublication = require("../models/savedPublication");
@@ -46,24 +44,26 @@ const save = async (req, res) => {
             // Validar extensión del archivo
             const validExtensions = ["jpg", "jpeg", "png", "gif", "mp4", "mov", "avi", "mkv"];
             if (!validExtensions.includes(extension)) {
-                fs.unlinkSync(req.file.path); // Eliminar archivo inválido
                 return res.status(400).json({
                     status: "error",
                     message: "File extension is invalid",
                 });
             }
 
-            console.log("Archivo recibido:", req.file.path);
+            console.log("Archivo recibido:", req.file.originalname);
 
-            // Subir archivo a Cloudinary solo si req.file.path es válido
+            // Convert buffer to base64 for Cloudinary upload
+            const base64File = req.file.buffer.toString('base64');
+            const dataURI = `data:${req.file.mimetype};base64,${base64File}`;
+
+            // Subir archivo a Cloudinary solo si req.file.buffer es válido
             try {
-                const result = await cloudinary.uploader.upload(req.file.path, {
+                const result = await cloudinary.uploader.upload(dataURI, {
                     folder: "publications",
                     resource_type: extension === "mp4" || extension === "mov" ? "video" : "image", // ✅ Permitir videos
                 });
 
                 fileUrl = result.secure_url;
-                fs.unlinkSync(req.file.path); // ✅ Eliminar archivo temporal después de subirlo
             } catch (uploadError) {
                 console.error("Error al subir a Cloudinary:", uploadError);
                 return res.status(500).json({
@@ -605,10 +605,13 @@ const updatePublication = async (req, res) => {
         if (req.file) {
             console.log("✅ Subiendo imagen a Cloudinary...");
 
-            const result = await cloudinary.uploader.upload(req.file.path, { folder: "publications" });
+            // Convert buffer to base64 for Cloudinary upload
+            const base64File = req.file.buffer.toString('base64');
+            const dataURI = `data:${req.file.mimetype};base64,${base64File}`;
+
+            const result = await cloudinary.uploader.upload(dataURI, { folder: "publications" });
 
             fileUrl = result.secure_url;
-            fs.unlinkSync(req.file.path); // Eliminar archivo temporal
 
             console.log("✅ Nueva imagen subida:", fileUrl);
         }

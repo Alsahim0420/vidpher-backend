@@ -1,6 +1,5 @@
 // Importar dependencias
 const bcrypt = require("bcryptjs");
-const fs = require('fs');
 const path = require('path');
 const cloudinary = require('../config/cloudinary-config');
 
@@ -44,7 +43,7 @@ const normalizeText = (text) => {
 const checkUsername = async (req, res) => {
     try {
         const { username } = req.body;
-        console.log(username);  
+        console.log(username);
         // Validar que se proporcione el username
         if (!username) {
             return res.status(400).json({
@@ -473,11 +472,12 @@ const update = async (req, res) => {
         if (!req.file) {
             user_update.image = existingUser.image;
         } else {
-            // Subir nueva imagen a Cloudinary
-            const result = await cloudinary.uploader.upload(req.file.path, { folder: 'avatars' });
+            // Convert buffer to base64 for Cloudinary upload
+            const base64Image = req.file.buffer.toString('base64');
+            const dataURI = `data:${req.file.mimetype};base64,${base64Image}`;
 
-            // Eliminar archivo temporal
-            fs.unlinkSync(req.file.path);
+            // Subir nueva imagen a Cloudinary
+            const result = await cloudinary.uploader.upload(dataURI, { folder: 'avatars' });
 
             // Actualizar la imagen en el usuario
             user_update.image = result.secure_url;
@@ -559,21 +559,11 @@ const avatar = (req, res) => {
     // Sacar el parámetro
     const file = req.params.file;
 
-    // Montar el path real de la imagen
-    const filePath = path.resolve('./uploads/avatars/' + file);
-
-    // Comprobar si el archivo existe
-    fs.stat(filePath, (error) => {
-        if (error) {
-            // Si el archivo no existe
-            return res.status(404).json({
-                status: "error",
-                message: "The image does not exist"
-            });
-        }
-
-        // Si existe, devolver el archivo
-        return res.sendFile(filePath);
+    // Since we're using Cloudinary, redirect to the Cloudinary URL
+    // This function is now deprecated as we store all images in Cloudinary
+    return res.status(404).json({
+        status: "error",
+        message: "Avatar endpoint deprecated. Images are served directly from Cloudinary URLs."
     });
 };
 

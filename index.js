@@ -36,6 +36,7 @@ const preferenceRoutes = require('./routes/preferenceRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const savedPublicationRoutes = require('./routes/savedPublicationRoutes');
 const suggestionRoutes = require('./routes/suggestionRoutes');
+const accountDeletionRequestRoutes = require('./routes/accountDeletionRequestRoutes');
 
 // Cargar rutas normales
 app.use('/api/user', userRoutes);
@@ -47,6 +48,7 @@ app.use('/api/preference', preferenceRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/savedPublication', savedPublicationRoutes);
 app.use('/api/suggestion', suggestionRoutes);
+app.use('/api/accountDeletionRequest', accountDeletionRequestRoutes);
 
 // Ruta de prueba
 app.get("/ruta-prueba", (req, res) => {
@@ -54,7 +56,7 @@ app.get("/ruta-prueba", (req, res) => {
 });
 
 // Iniciar servidor
-app.listen(puerto,'0.0.0.0', () => {
+app.listen(puerto, '0.0.0.0', () => {
     console.log(`🚀 Servidor corriendo en http://localhost:${puerto}`);
     console.log('⏳ Iniciando tareas programadas...');
     cronJobs;
